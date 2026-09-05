@@ -1,0 +1,4 @@
+unit: matching-pipeline
+commit: false
+candidate_splits:
+  - {id: "backend/apps/agents/orchestrator.py:5", drivers: [concern_split], rationale: "Agent orchestration and persistence/dispatch are separable concerns with different change cadence and failure handling.", source_slice: {file: backend/apps/agents/orchestrator.py, lines: [5, 80]}}

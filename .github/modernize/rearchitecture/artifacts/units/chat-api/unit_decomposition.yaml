@@ -1,0 +1,4 @@
+unit: chat-api
+commit: false
+candidate_splits:
+  - {id: "backend/apps/chat/rag.py:16", drivers: [concern_split], rationale: "Retrieval fusion, aggregate database answering and citation-enforced generation are independently testable responsibilities.", source_slice: {file: backend/apps/chat/rag.py, lines: [16, 130]}}

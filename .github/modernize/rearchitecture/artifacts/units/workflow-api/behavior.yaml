@@ -1,0 +1,9 @@
+unit: workflow-api
+side_effects:
+  - {source_loc: "backend/apps/workflow/views.py:21", effect: "transition approval state and persist reviewer decision", must_preserve: true}
+  - {source_loc: "backend/apps/workflow/views.py:58", effect: "send dispute email and mark dispute sent", must_preserve: true}
+branches:
+  - {source_loc: "backend/apps/workflow/views.py:21", condition: "decision is approve/dispute/reject", behavior: "apply corresponding workflow transition", must_preserve: true}
+error_paths:
+  - {source_loc: "backend/apps/workflow/views.py:21", trigger: "invalid state transition", outcome: "reject decision", contract: "DRF error response", must_preserve: true}
+concurrency: {model: sync, tx_boundary: {source_loc: "backend/apps/workflow/views.py:21", scope: "approval decision mutation", isolation: "default", must_preserve: true}}

@@ -1,0 +1,6 @@
+unit: document-pipeline
+bindings:
+  - {type: listener, name: "Celery shared_task autodiscovery", source_loc: "backend/config/celery.py:7", target: "ingestion task handlers", must_appear_in_target: true, notes: "Tasks are externally invoked by queue and Beat."}
+runtime_config:
+  - {key: TESSERACT executable, source_loc: "backend/apps/documents/ocr.py:16", source: env, default_value: "configured executable", must_appear_in_target: true, notes: "OCR dependency."}
+  - {key: LLM_BASE_URL, source_loc: "backend/apps/agents/client.py:12", source: env, default_value: "provider default", must_appear_in_target: true, notes: "OpenAI-compatible extraction/vision provider."}

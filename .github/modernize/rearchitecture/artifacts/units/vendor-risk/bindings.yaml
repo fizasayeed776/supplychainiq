@@ -1,0 +1,5 @@
+unit: vendor-risk
+bindings:
+  - {type: listener, name: "Celery vendor risk tasks", source_loc: "backend/apps/agents/tasks.py:5", target: "risk recomputation handlers", must_appear_in_target: true, notes: "Nightly fan-out and per-vendor task."}
+runtime_config:
+  - {key: LLM_BASE_URL, source_loc: "backend/apps/agents/client.py:12", source: env, default_value: "provider default", must_appear_in_target: true, notes: "Risk Analyst provider."}

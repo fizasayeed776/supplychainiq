@@ -1,0 +1,85 @@
+# Production override for: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# It replaces development-only source/config mounts with image-baked assets and named data volumes.
+services:
+  db:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  mailpit:
+    restart: unless-stopped
+
+  web:
+    restart: unless-stopped
+    command: sh -c "python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4"
+    environment:
+      DJANGO_DEBUG: "false"
+    volumes:
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+
+  asgi:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+    volumes:
+      - media:/app/media
+
+  worker-ocr:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+    volumes:
+      - media:/app/media
+
+  worker-extraction:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+    volumes:
+      - media:/app/media
+
+  worker-matching:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+    volumes:
+      - media:/app/media
+
+  worker-llm:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+    volumes:
+      - media:/app/media
+
+  worker-default:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+    volumes:
+      - media:/app/media
+
+  beat:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+
+  flower:
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+
+  frontend:
+    restart: unless-stopped
+
+  nginx:
+    build: ./nginx
+    restart: unless-stopped
+    volumes: !override
+      - media:/var/www/media:ro
+      - staticfiles:/var/www/static:ro
+
+volumes:
+  staticfiles:

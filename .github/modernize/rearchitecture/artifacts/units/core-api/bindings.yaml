@@ -1,0 +1,4 @@
+unit: core-api
+bindings:
+  - {type: route-declaration, name: "DefaultRouter core viewsets", source_loc: "backend/apps/core/urls.py:4", target: "workspace/vendor/contract REST routes", must_appear_in_target: true, notes: "DRF router CRUD."}
+runtime_config: []

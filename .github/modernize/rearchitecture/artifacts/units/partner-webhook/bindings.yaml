@@ -1,0 +1,5 @@
+unit: partner-webhook
+bindings:
+  - {type: route-declaration, name: "partner_webhook", source_loc: "backend/apps/webhooks/urls.py:4", target: "POST /webhooks/partner/", must_appear_in_target: true, notes: "Unauthenticated partner boundary with HMAC."}
+runtime_config:
+  - {key: PARTNER_WEBHOOK_SECRET, source_loc: "backend/apps/webhooks/views.py:24", source: env, default_value: "none", must_appear_in_target: true, notes: "HMAC verification secret."}

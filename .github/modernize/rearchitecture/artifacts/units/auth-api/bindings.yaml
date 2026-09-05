@@ -1,0 +1,5 @@
+unit: auth-api
+bindings:
+  - {type: route-declaration, name: "TokenObtainPairView and TokenRefreshView", source_loc: "backend/config/urls.py:9", target: "JWT auth endpoints", must_appear_in_target: true, notes: "SimpleJWT routes."}
+runtime_config:
+  - {key: SIMPLE_JWT, source_loc: "backend/config/settings.py:114", source: code, default_value: "configured defaults", must_appear_in_target: true, notes: "DRF JWT authentication."}

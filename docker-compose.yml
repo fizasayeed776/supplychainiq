@@ -1,0 +1,205 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-supplychainiq}
+      POSTGRES_USER: ${POSTGRES_USER:-supplychainiq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-supplychainiq}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-supplychainiq}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "9025:8025"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: ./backend
+    env_file: ./backend/.env
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  asgi:
+    build: ./backend
+    env_file: ./backend/.env
+    command: daphne -b 0.0.0.0 -p 8001 config.asgi:application
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8001/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  worker-ocr:
+    build: ./backend
+    env_file: ./backend/.env
+    command: celery -A config worker -Q ocr -c 2 -n worker-ocr@%h
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d \"worker-ocr@$$HOSTNAME\" -t 10 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  worker-extraction:
+    build: ./backend
+    env_file: ./backend/.env
+    command: celery -A config worker -Q extraction -c 2 -n worker-extraction@%h
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d \"worker-extraction@$$HOSTNAME\" -t 10 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  worker-matching:
+    build: ./backend
+    env_file: ./backend/.env
+    command: celery -A config worker -Q matching -c 2 -n worker-matching@%h
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d \"worker-matching@$$HOSTNAME\" -t 10 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  worker-llm:
+    build: ./backend
+    env_file: ./backend/.env
+    command: celery -A config worker -Q llm -c 2 -n worker-llm@%h
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d \"worker-llm@$$HOSTNAME\" -t 10 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  worker-default:
+    build: ./backend
+    env_file: ./backend/.env
+    command: celery -A config worker -Q default -c 2 -n worker-default@%h
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d \"worker-default@$$HOSTNAME\" -t 10 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  beat:
+    build: ./backend
+    env_file: ./backend/.env
+    command: celery -A config beat --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import sys; data=open('/proc/1/cmdline','rb').read(); sys.exit(0 if b'beat' in data else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  flower:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      FLOWER_UNAUTHENTICATED_API: "true"
+    command: celery -A config flower --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5555/api/workers"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_BASE_URL: /api
+      VITE_WS_BASE_URL: /ws
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+      - asgi
+      - frontend
+
+volumes:
+  pgdata:
+  redisdata:
+  media:

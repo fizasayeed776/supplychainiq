@@ -1,0 +1,8 @@
+unit: document-api
+side_effects:
+  - {source_loc: "backend/apps/documents/views.py:26", effect: "persist uploaded Document and enqueue ingest_document", must_preserve: true}
+branches:
+  - {source_loc: "backend/apps/documents/views.py:26", condition: "duplicate workspace/content hash", behavior: "retain idempotent document behavior", must_preserve: true}
+error_paths:
+  - {source_loc: "backend/apps/documents/views.py:26", trigger: "invalid upload or serializer data", outcome: "reject request", contract: "DRF validation/status response", must_preserve: true}
+concurrency: {model: sync, tx_boundary: {source_loc: "backend/apps/documents/views.py:26", scope: "document request persistence before queue dispatch", isolation: "default", must_preserve: true}}

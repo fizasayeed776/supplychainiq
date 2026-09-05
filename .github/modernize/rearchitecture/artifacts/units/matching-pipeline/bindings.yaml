@@ -1,0 +1,5 @@
+unit: matching-pipeline
+bindings:
+  - {type: listener, name: "Celery matching queue task", source_loc: "backend/apps/matching/tasks.py:18", target: "try_three_way_match", must_appear_in_target: true, notes: "Queue routing includes matching."}
+runtime_config:
+  - {key: CELERY_TASK_ROUTES, source_loc: "backend/config/settings.py:161", source: code, default_value: "matching queue", must_appear_in_target: true, notes: "Dedicated matching worker."}

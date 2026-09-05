@@ -1,0 +1,4 @@
+unit: workflow-api
+bindings:
+  - {type: route-declaration, name: "ApprovalFlow, Dispute and TriageRule routers/actions", source_loc: "backend/apps/workflow/urls.py:4", target: "workflow REST routes", must_appear_in_target: true, notes: "Includes decide and send actions."}
+runtime_config: []

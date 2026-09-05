@@ -1,0 +1,8 @@
+unit: vendor-risk
+side_effects:
+  - {source_loc: "backend/apps/agents/tasks.py:5", effect: "compute and persist vendor risk score, factors and explanation", must_preserve: true}
+branches:
+  - {source_loc: "backend/apps/agents/tasks.py:5", condition: "vendor history available", behavior: "recompute score from risk analysis inputs", must_preserve: true}
+error_paths:
+  - {source_loc: "backend/apps/agents/tasks.py:5", trigger: "vendor or agent failure", outcome: "task failure without silently clearing score", contract: "Celery task failure", must_preserve: true}
+concurrency: {model: thread-pool, tx_boundary: {source_loc: "backend/apps/agents/tasks.py:5", scope: "vendor risk field update", isolation: "default", must_preserve: true}}

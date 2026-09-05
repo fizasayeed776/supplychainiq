@@ -1,0 +1,21 @@
+flows:
+  - name: dashboard-pipeline-progress
+    medium: framework-context
+    key: pipeline.progress
+    writer: {unit: document-pipeline, source_loc: "backend/apps/documents/tasks.py:13"}
+    reader: {unit: realtime, source_loc: "backend/apps/realtime/consumers.py:5"}
+    pairing: matched
+    must_preserve: true
+    must_confirm: null
+    verification_hint: "Upload a document and observe progress events for the workspace dashboard."
+    notes: "Matching tasks also publish through the same group; preserve event names and workspace scoping."
+  - name: chat-message-persistence
+    medium: database
+    key: ChatSession.messages
+    writer: {unit: chat-api, source_loc: "backend/apps/chat/views.py:18"}
+    reader: {unit: realtime, source_loc: "backend/apps/realtime/consumers.py:5"}
+    pairing: matched
+    must_preserve: true
+    must_confirm: null
+    verification_hint: "Ask through HTTP and WebSocket and verify ordered user/assistant messages."
+    notes: "Both transports use the same RAG service and persisted citation records."

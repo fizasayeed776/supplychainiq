@@ -1,0 +1,22 @@
+user_intent:
+  raw_request: "analyze project"
+  inferred_acceptance: ["document the existing architecture and runtime boundaries"]
+  cleanup_required: false
+strategy: phased
+runtime_reachable:
+  - backend/config/asgi.py
+  - backend/config/wsgi.py
+  - frontend/src/main.jsx
+must_rewrite: []
+copy_as_is:
+  - backend/config/settings.py
+  - backend/config/urls.py
+  - backend/config/celery.py
+  - frontend/src/App.jsx
+legacy_allowed_to_remain:
+  - backend/apps/**
+  - frontend/src/**
+defer_cleanup:
+  - "No implementation or cleanup requested; this analysis records the current system only."
+full_rewrite_reason: null
+implementation_rule: "This is an observation artifact. Any future implementation scope must be explicitly derived from a later request, not from source_anchors."

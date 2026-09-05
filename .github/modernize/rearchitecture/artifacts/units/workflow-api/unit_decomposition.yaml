@@ -1,0 +1,4 @@
+unit: workflow-api
+commit: false
+candidate_splits:
+  - {id: "backend/apps/workflow/views.py:21-80", drivers: [concern_split], rationale: "Approval decisions, dispute delivery and triage-rule administration expose different authorization and side-effect contracts.", source_slice: {file: backend/apps/workflow/views.py, lines: [21, 90]}}

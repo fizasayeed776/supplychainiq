@@ -1,0 +1,41 @@
+contracts:
+  - name: core-rest-api
+    unit: core-api
+    type: rest
+    stability: frozen
+    source_loc: "backend/config/urls.py:11"
+    contract: {method: "GET/POST/PATCH/DELETE", path: "/api/core/{workspaces,vendors,contracts}/", request: "DRF serializers", response: "paginated DRF JSON", error: "DRF validation/auth errors", auth: "JWT"}
+    target_contract: {method: "Equivalent REST resources with existing JSON shapes", notes: "Preserve workspace membership scoping and pagination/filter behavior."}
+    semantic_divergence: []
+  - name: document-rest-api
+    unit: document-api
+    type: rest
+    stability: frozen
+    source_loc: "backend/config/urls.py:12"
+    contract: {method: "GET/POST", path: "/api/documents/{documents,purchase-orders,invoices,delivery-receipts,scan-runs}/", request: "multipart document upload or query params", response: "DRF JSON", error: "validation/auth/status errors", auth: "JWT"}
+    target_contract: {method: "Equivalent REST resources", notes: "Upload must enqueue ingestion and preserve idempotent content hash semantics."}
+    semantic_divergence: []
+  - name: partner-webhook
+    unit: partner-webhook
+    type: rest
+    stability: frozen
+    source_loc: "backend/apps/webhooks/views.py:24"
+    contract: {method: "POST", path: "/webhooks/partner/", request: "JSON with delivery_id", response: "202 accepted", error: "401 invalid signature, 400 missing delivery_id", auth: "X-SCIQ-Signature HMAC-SHA256"}
+    target_contract: {method: "POST /webhooks/partner/ -> 202", notes: "Validate signature before Redis deduplication and queueing."}
+    semantic_divergence: []
+  - name: websocket-routes
+    unit: realtime
+    type: sdk
+    stability: frozen
+    source_loc: "backend/apps/realtime/routing.py:4"
+    contract: {method: "WebSocket", path: "/ws/dashboard/{workspace_id}/, /ws/chat/{session_id}/, /ws/approval-room/{invoice_id}/", request: "JSON events", response: "JSON events", error: "close on failed auth/membership", auth: "JWT query token or protocol header"}
+    target_contract: {method: "Equivalent WebSocket paths and event names", notes: "Preserve group scoping and reconnect behavior."}
+    semantic_divergence: []
+  - name: celery-queues
+    unit: document-pipeline
+    type: rabbitmq
+    stability: must_preserve
+    source_loc: "backend/config/settings.py:161"
+    contract: {method: "Celery task", path: "ocr/extraction/matching/llm/default queues", request: "task name and document/invoice ids", response: "persisted DB state", error: "retry/task failure state", auth: "internal broker"}
+    target_contract: {method: "Equivalent task names and queue routing", notes: "Autodiscovery and scheduled Beat dispatch are runtime entrypoints."}
+    semantic_divergence: []

@@ -1,0 +1,127 @@
+modules:
+  - name: runtime-config
+    kind: config
+    source_loc: "backend/config/settings.py:16"
+    used_by_units: [auth-api, core-api, document-api, document-pipeline, realtime, partner-webhook]
+    fields:
+      - {name: REST_FRAMEWORK, type: dict}
+      - {name: SIMPLE_JWT, type: dict}
+      - {name: DATABASES, type: dict}
+      - {name: CELERY_BROKER_URL, type: string}
+      - {name: REDIS_URL, type: string}
+    god_class: false
+    split_candidate: false
+    migration_strategy: wrap
+    notes: "Central Django settings and environment-backed service configuration."
+  - name: tenancy-models
+    kind: dto
+    source_loc: "backend/apps/core/models.py:6"
+    used_by_units: [core-api, document-api, document-pipeline, workflow-api, partner-webhook, vendor-risk]
+    fields:
+      - {name: Workspace, type: apps.core.models.Workspace}
+      - {name: WorkspaceMembership, type: apps.core.models.WorkspaceMembership}
+      - {name: Vendor, type: apps.core.models.Vendor}
+      - {name: Contract, type: apps.core.models.Contract}
+    god_class: false
+    split_candidate: false
+    migration_strategy: wrap
+    notes: "Workspace is the tenancy boundary for most records and authorization queries."
+  - name: llm-client
+    kind: utility
+    source_loc: "backend/apps/agents/client.py:12"
+    used_by_units: [document-pipeline, matching-pipeline, workflow-automation, chat-api, vendor-risk]
+    fields:
+      - {name: chat_completion, type: callable}
+      - {name: embeddings, type: callable}
+      - {name: vision_transcription, type: callable}
+    god_class: true
+    split_candidate: true
+    migration_strategy: wrap
+    notes: "Provider abstraction also owns cache, rate limiting and vision fallback."
+  - name: progress-publisher
+    kind: utility
+    source_loc: "backend/apps/documents/tasks.py:13"
+    used_by_units: [document-api, document-pipeline, matching-pipeline, realtime]
+    fields:
+      - {name: _publish_progress, type: callable}
+      - {name: pipeline.progress, type: channel-event}
+    god_class: false
+    split_candidate: false
+    migration_strategy: extract
+    notes: "Redis Channels group event used for live pipeline status."
+  - name: outbound-delivery
+    kind: store
+    source_loc: "backend/apps/workflow/outbound.py:17"
+    used_by_units: [workflow-api, workflow-automation]
+    fields:
+      - {name: send_signed_webhook, type: callable}
+      - {name: WebhookDelivery, type: apps.workflow.models.WebhookDelivery}
+    god_class: false
+    split_candidate: false
+    migration_strategy: wrap
+    notes: "Signed outbound HTTP with persisted attempt state."
+  - name: rag-retrieval
+    kind: utility
+    source_loc: "backend/apps/chat/rag.py:16"
+    used_by_units: [chat-api]
+    fields:
+      - {name: vector_search, type: callable}
+      - {name: full_text_search, type: callable}
+      - {name: reciprocal_rank_fusion, type: callable}
+    god_class: false
+    split_candidate: false
+    migration_strategy: extract
+    notes: "Retrieval and citation-enforced answer context."
+  - name: websocket-auth
+    kind: utility
+    source_loc: "backend/apps/realtime/middleware.py:19"
+    used_by_units: [realtime]
+    fields:
+      - {name: JWTAuthMiddlewareStack, type: callable}
+    god_class: false
+    split_candidate: false
+    migration_strategy: copy
+    notes: "JWT accepted from query string or WebSocket protocol header."
+  - name: webhook-dedup
+    kind: store
+    source_loc: "backend/apps/webhooks/dedup.py:10"
+    used_by_units: [partner-webhook]
+    fields:
+      - {name: delivery_id, type: string}
+    god_class: false
+    split_candidate: false
+    migration_strategy: wrap
+    notes: "Redis-backed idempotency window for partner deliveries."
+  - name: frontend-api-client
+    kind: utility
+    source_loc: "frontend/src/lib/api.js:3"
+    used_by_units: [frontend-spa]
+    fields:
+      - {name: axios_instance, type: AxiosInstance}
+      - {name: JWT_refresh, type: interceptor}
+    god_class: false
+    split_candidate: false
+    migration_strategy: copy
+    notes: "Authenticated HTTP client and token lifecycle."
+  - name: frontend-websocket-hook
+    kind: utility
+    source_loc: "frontend/src/hooks/useWebSocket.js:10"
+    used_by_units: [frontend-spa]
+    fields:
+      - {name: useWebSocket, type: ReactHook}
+    god_class: false
+    split_candidate: false
+    migration_strategy: copy
+    notes: "Reconnecting browser WebSocket hook."
+  - name: frontend-shell
+    kind: base-class
+    source_loc: "frontend/src/components/PageHeader.jsx:1"
+    used_by_units: [frontend-spa]
+    fields:
+      - {name: PageHeader, type: ReactComponent}
+      - {name: SeverityBadge, type: ReactComponent}
+      - {name: StatCard, type: ReactComponent}
+    god_class: false
+    split_candidate: false
+    migration_strategy: copy
+    notes: "Shared visual components used by page units."

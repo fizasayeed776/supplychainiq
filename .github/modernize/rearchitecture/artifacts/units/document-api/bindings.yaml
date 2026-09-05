@@ -1,0 +1,4 @@
+unit: document-api
+bindings:
+  - {type: route-declaration, name: "DefaultRouter document viewsets", source_loc: "backend/apps/documents/urls.py:8", target: "document and structured-record routes", must_appear_in_target: true, notes: "DRF router plus upload action."}
+runtime_config: []
