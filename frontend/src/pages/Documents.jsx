@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   UploadCloud, FileText, Receipt, FileSignature, Package,
@@ -205,7 +206,7 @@ export default function Documents() {
           {/* List: data */}
           {!isLoading && !isError && (
             <div className="space-y-1">
-              {(documents || []).map((doc) => {
+              {([...(documents || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4)).map((doc) => {
                 const statusMeta = STATUS_META[doc.ocr_status] || STATUS_META.pending;
                 const StatusIcon = statusMeta.icon;
                 const docProcessing = isProcessing(doc);
@@ -244,6 +245,14 @@ export default function Documents() {
                   </motion.button>
                 );
               })}
+              {documents?.length > 4 && (
+                <Link
+                  to="/documents/history"
+                  className="block text-center text-xs text-ledgerLight hover:text-ledger py-2 transition-colors duration-150"
+                >
+                  View all documents →
+                </Link>
+              )}
               {!documents?.length && (
                 <div className="text-xs text-ink/40 text-center py-6">
                   No documents yet — drop a file above to get started.

@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Toaster } from "sonner";
 import {
   LayoutDashboard, FileStack, GitCompareArrows, ClipboardCheck,
-  Building2, MessagesSquare, Settings as SettingsIcon, Menu, X,
+  Building2, MessagesSquare, Settings as SettingsIcon, Menu, X, History,
 } from "lucide-react";
 
 import Dashboard    from "./pages/Dashboard.jsx";
@@ -13,7 +13,8 @@ import Matches      from "./pages/Matches.jsx";
 import Approvals    from "./pages/Approvals.jsx";
 import Vendors      from "./pages/Vendors.jsx";
 import Chat         from "./pages/Chat.jsx";
-import SettingsPage from "./pages/Settings.jsx";
+import SettingsPage      from "./pages/Settings.jsx";
+import DocumentHistory   from "./pages/DocumentHistory.jsx";
 import Login        from "./pages/Login.jsx";
 import Signup       from "./pages/Signup.jsx";
 import Landing      from "./pages/Landing.jsx";
@@ -22,7 +23,8 @@ import { useAuth }  from "./context/AuthContext.jsx";
 
 const NAV = [
   { to: "/",          label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/documents", label: "Documents", icon: FileStack        },
+  { to: "/documents",         label: "Documents", icon: FileStack        },
+  { to: "/documents/history", label: "History",   icon: History          },
   { to: "/matches",   label: "Matches",   icon: GitCompareArrows },
   { to: "/approvals", label: "Approvals", icon: ClipboardCheck   },
   { to: "/vendors",   label: "Vendors",   icon: Building2        },
@@ -146,7 +148,8 @@ function AppShell() {
             <AnimatePresence mode="wait" initial={false}>
               <Routes location={location} key={location.pathname}>
                 <Route path="/"          element={<ProtectedRoute><AnimatedPage><Dashboard    /></AnimatedPage></ProtectedRoute>} />
-                <Route path="/documents" element={<ProtectedRoute><AnimatedPage><Documents    /></AnimatedPage></ProtectedRoute>} />
+                <Route path="/documents"         element={<ProtectedRoute><AnimatedPage><Documents      /></AnimatedPage></ProtectedRoute>} />
+                <Route path="/documents/history" element={<ProtectedRoute><AnimatedPage><DocumentHistory /></AnimatedPage></ProtectedRoute>} />
                 <Route path="/matches"   element={<ProtectedRoute><AnimatedPage><Matches      /></AnimatedPage></ProtectedRoute>} />
                 <Route path="/approvals" element={<ProtectedRoute><AnimatedPage><Approvals    /></AnimatedPage></ProtectedRoute>} />
                 <Route path="/vendors"   element={<ProtectedRoute><AnimatedPage><Vendors      /></AnimatedPage></ProtectedRoute>} />
