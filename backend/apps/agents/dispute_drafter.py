@@ -26,8 +26,14 @@ class DisputeEmail(BaseModel):
 
 def draft_dispute_email(match_result) -> dict:
     invoice = match_result.invoice
+    po_number = (
+        getattr(getattr(match_result, "purchase_order", None), "po_number", None)
+        or getattr(invoice, "referenced_po_number", None)
+        or "unknown"
+    )
     context = (
         f"Invoice {invoice.invoice_number} from vendor {invoice.vendor.name}.\n"
+        f"Purchase Order: {po_number}\n"
         f"Discrepancies: {match_result.discrepancies}\n"
         f"Severity: {match_result.severity}\n"
         f"Agent reasoning: {match_result.agent_reasoning}"

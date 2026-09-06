@@ -1,0 +1,20 @@
+[tool.ruff]
+# First-pass lenient config: catch syntax errors and real bugs,
+# but ignore line-length and unused-import noise until the codebase
+# is cleaned up incrementally.
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes (undefined names, etc.)
+    "W",   # pycodestyle warnings
+]
+ignore = [
+    "E501",  # line too long — enforced separately once baseline is clean
+    "F401",  # imported but unused — many Django apps import for side-effects
+    "F811",  # redefinition of unused name — common in test setUp overrides
+    "E402",  # module level import not at top of file
+    "W291",  # trailing whitespace
+    "W293",  # whitespace before ':'
+]

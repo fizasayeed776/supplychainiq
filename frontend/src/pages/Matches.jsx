@@ -11,6 +11,17 @@ import SeverityBadge from "../components/SeverityBadge.jsx";
 import Skeleton, { SkeletonRow, PageError } from "../components/Skeleton.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
+/* ── Discrepancy value formatter ─────────────────────────────────────────── */
+function formatDiscrepancyValue(value) {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(", ");
+  }
+  return String(value);
+}
+
 /* ── Status pill ─────────────────────────────────────────────────────────── */
 const STATUS_STYLES = {
   matched:    { cls: "bg-matched/10 text-matched border-matched/30",     icon: CheckCircle2  },
@@ -231,11 +242,11 @@ export default function Matches() {
                       <div className="flex gap-6 text-xs mb-2 font-mono">
                         <div>
                           <div className="text-ink/30 mb-0.5">Expected</div>
-                          <div className="text-ink font-medium">{String(d.expected ?? "—")}</div>
+                          <div className="text-ink font-medium">{formatDiscrepancyValue(d.expected)}</div>
                         </div>
                         <div>
                           <div className="text-ink/30 mb-0.5">Actual</div>
-                          <div className="text-signal font-medium">{String(d.actual ?? "—")}</div>
+                          <div className="text-signal font-medium">{formatDiscrepancyValue(d.actual)}</div>
                         </div>
                       </div>
                       {d.reasoning && (

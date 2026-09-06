@@ -58,7 +58,19 @@ class AgentBehaviorTests(TestCase):
         candidates = compare(self.invoice, self.po, [], None)
         self.assertEqual({candidate["type"] for candidate in candidates}, {"rate_mismatch", "currency_mismatch", "no_delivery_on_record"})
 
-    def test_judge_suppresses_rounding_and_unit_conversion(self):
+    @patch("apps.agents.judge.run_structured_agent")
+    def test_judge_suppresses_rounding_and_unit_conversion(self, mock_llm):
+        # Python pre-filtering removes the quantity_mismatch (unit_conversion + equal
+        # base quantities) and the delivery_shortfall (partial_delivery=True) before
+        # the LLM is ever called, leaving only the 0.3% rate_mismatch candidate.
+        # The LLM (mocked) then judges that 0.3% difference as a rounding false
+        # positive and returns kept_indices=[], yielding a clean "matched" result.
+        mock_llm.return_value = {
+            "status": "matched",
+            "severity": "none",
+            "kept_indices": [],
+            "reasoning": "Mocked: no genuine discrepancies after rounding/unit-conversion filtering.",
+        }
         result = judge(self.invoice, [
             {"type": "quantity_mismatch", "expected": 12, "actual": 12.0, "expected_base": 12, "actual_base": 12, "unit_conversion": True},
             {"type": "rate_mismatch", "expected": 1.20, "actual": 1.204},
@@ -66,6 +78,10 @@ class AgentBehaviorTests(TestCase):
         ])
         self.assertEqual(result["status"], "matched")
         self.assertEqual(result["discrepancies"], [])
+        # Confirm the LLM was called exactly once with the one remaining candidate
+        mock_llm.assert_called_once()
+        call_prompt = mock_llm.call_args[0][1]  # second positional arg is user_prompt
+        self.assertIn("rate_mismatch", call_prompt)
 
     def test_comparator_normalizes_plural_pack_units(self):
         candidates = compare(self.invoice, self.po, [], None)
