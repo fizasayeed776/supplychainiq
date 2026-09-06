@@ -23,6 +23,9 @@ import {
   Brain, Search, Scale, BarChart2, ArrowRight, ChevronRight,
 } from "lucide-react";
 
+import MarketingNav    from "../components/MarketingNav.jsx";
+import MarketingFooter from "../components/MarketingFooter.jsx";
+
 /* ── Shared animation helpers ────────────────────────────────────────────── */
 function useFadeUp(once = true) {
   const reduced = useReducedMotion();
@@ -49,44 +52,6 @@ function FadeUp({ children, delay = 0, className = "" }) {
     <motion.div {...props} className={className}>
       {children}
     </motion.div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   1. NAV BAR
-══════════════════════════════════════════════════════════════════════════ */
-function NavBar() {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handler, { passive: true });
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
-
-  return (
-    <header
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-200 ${
-        scrolled ? "bg-white/95 backdrop-blur-sm border-b border-line shadow-sm" : "bg-transparent"
-      }`}
-    >
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="font-display text-xl text-ledger">SupplyChainIQ</div>
-        <nav className="flex items-center gap-3" aria-label="Site navigation">
-          <Link
-            to="/login"
-            className="px-4 py-2 text-sm font-medium text-ink/70 hover:text-ink rounded-md hover:bg-line/40 transition-colors duration-150 focus-visible:ring-2"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/signup"
-            className="px-4 py-2 text-sm font-medium bg-ledger text-paper rounded-md hover:bg-ledgerLight transition-colors duration-150 focus-visible:ring-2"
-          >
-            Get started
-          </Link>
-        </nav>
-      </div>
-    </header>
   );
 }
 
@@ -587,51 +552,18 @@ function CTA() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   7. FOOTER
-══════════════════════════════════════════════════════════════════════════ */
-function Footer() {
-  return (
-    <footer className="bg-ink py-10">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="font-display text-lg text-paper/80">SupplyChainIQ</div>
-        <nav className="flex flex-wrap gap-6 text-sm text-paper/40" aria-label="Footer links">
-          {[
-            { label: "Product",     href: "#" },
-            { label: "Pricing",     href: "#" },
-            { label: "Docs",        href: "#" },
-            { label: "Privacy",     href: "#" },
-            { label: "Terms",       href: "#" },
-          ].map((l) => (
-            <a
-              key={l.label}
-              href={l.href}
-              className="hover:text-paper/70 transition-colors focus-visible:outline-paper/40"
-            >
-              {l.label}
-            </a>
-          ))}
-        </nav>
-        <div className="text-xs text-paper/25 font-mono">
-          © {new Date().getFullYear()} SupplyChainIQ
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
    ROOT
 ══════════════════════════════════════════════════════════════════════════ */
 export default function Landing() {
   return (
     <div className="font-body text-ink antialiased">
-      <NavBar />
+      <MarketingNav />
       <Hero />
       <StatStrip />
       <FlipSection />
       <HowItWorks />
       <CTA />
-      <Footer />
+      <MarketingFooter />
     </div>
   );
 }

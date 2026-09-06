@@ -18,6 +18,11 @@ import DocumentHistory   from "./pages/DocumentHistory.jsx";
 import Login        from "./pages/Login.jsx";
 import Signup       from "./pages/Signup.jsx";
 import Landing      from "./pages/Landing.jsx";
+import Product      from "./pages/Product.jsx";
+import Pricing      from "./pages/Pricing.jsx";
+import Docs         from "./pages/Docs.jsx";
+import Privacy      from "./pages/Privacy.jsx";
+import Terms        from "./pages/Terms.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { useAuth }  from "./context/AuthContext.jsx";
 
@@ -172,8 +177,15 @@ export default function App() {
   const path       = location.pathname;
 
   // Auth pages — full-screen, no sidebar, no auth check
-  if (path === "/login")  return <><Toaster position="top-right" richColors closeButton /><Login  /></>;
-  if (path === "/signup") return <><Toaster position="top-right" richColors closeButton /><Signup /></>;
+  if (path === "/login")   return <><Toaster position="top-right" richColors closeButton /><Login   /></>;
+  if (path === "/signup")  return <><Toaster position="top-right" richColors closeButton /><Signup  /></>;
+
+  // Public marketing pages — no sidebar, no auth check
+  if (path === "/product") return <><Toaster position="top-right" richColors closeButton /><Product /></>;
+  if (path === "/pricing") return <><Toaster position="top-right" richColors closeButton /><Pricing /></>;
+  if (path === "/docs")    return <><Toaster position="top-right" richColors closeButton /><Docs    /></>;
+  if (path === "/privacy") return <><Toaster position="top-right" richColors closeButton /><Privacy /></>;
+  if (path === "/terms")   return <><Toaster position="top-right" richColors closeButton /><Terms   /></>;
 
   // Root "/" — show Landing to anonymous visitors, Dashboard (inside AppShell) to authenticated ones
   // While auth is still resolving, show nothing to avoid a flash of Landing then Dashboard.
