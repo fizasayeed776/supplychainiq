@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import clsx from "clsx";
@@ -67,6 +67,12 @@ export default function Vendors() {
         .data.results ?? [],
     enabled: !!workspaceId,
   });
+
+  useEffect(() => {
+    if (!selected && vendors?.length) {
+      setSelected(vendors[0].id);
+    }
+  }, [vendors, selected]);
 
   const {
     data: contracts,
