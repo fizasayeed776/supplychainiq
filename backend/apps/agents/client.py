@@ -159,3 +159,99 @@ def get_llm_client() -> LLMClient:
         embedding_model=settings.EMBEDDING_MODEL,
         embedding_dim=settings.EMBEDDING_DIM,
     )
+
+
+def build_strands_model():
+    """Return a Strands OpenAIModel pointed at Groq's OpenAI-compatible endpoint.
+
+    Strands defaults to Amazon Bedrock; this factory overrides that by
+    supplying an ``OpenAIModel`` configured with the same ``LLM_API_KEY``,
+    ``LLM_BASE_URL``, and ``LLM_MODEL_FAST`` env vars already used by the
+    rest of the application.  This lets us use Groq (or any other
+    OpenAI-compatible provider) without needing AWS Bedrock credentials.
+
+    Usage (once agents are migrated)::
+
+        from strands import Agent
+        from apps.agents.client import build_strands_model
+
+        agent = Agent(model=build_strands_model(), tools=[...])
+    """
+    from strands.models.openai import OpenAIModel
+
+    return OpenAIModel(
+        client_args={
+            "api_key": settings.LLM_API_KEY,
+            "base_url": settings.LLM_BASE_URL,
+        },
+        model_id=settings.LLM_MODEL_FAST,
+    )
+
+
+def run_structured_agent(system: str, user: str, schema_model, use_cache: bool = True) -> dict:
+    """Single-turn structured completion via the Strands Agents SDK.
+
+    Mirrors the caching and rate-limiting behaviour of ``LLMClient.complete()``
+    but returns a validated ``schema_model`` instance serialised to a plain
+    dict, making it a drop-in replacement for callers that previously used
+    ``complete(json_schema=...)``.
+
+    Args:
+        system: System-level instructions for the agent.
+        user: User-side prompt / document text.
+        schema_model: A Pydantic ``BaseModel`` *class* (not an instance) that
+            the Strands ``structured_output`` call will validate the response
+            against.
+        use_cache: When ``True`` (default) the result is read from / written
+            to the Django cache using the same 7-day TTL as ``complete()``.
+
+    Returns:
+        A plain ``dict`` produced by ``schema_model(**...).model_dump()``.
+
+    Raises:
+        Re-raises any exception from the Strands call after logging it, so
+        Celery's ``bind=True, max_retries=N`` retry logic in callers works
+        unchanged.
+    """
+    from strands import Agent
+
+    # Build a cache key that incorporates the schema name so different
+    # structured-output shapes never collide with each other or with plain
+    # text completions.
+    raw_key = json.dumps(
+        {"schema": schema_model.__name__, "system": system, "user": user},
+        sort_keys=True,
+    )
+    key = f"llmcache:{hashlib.sha256(raw_key.encode()).hexdigest()}"
+
+    if use_cache:
+        hit = cache.get(key)
+        if hit is not None:
+            logger.debug("run_structured_agent cache hit for schema=%s", schema_model.__name__)
+            return hit
+
+    # Honour the same global rate-limiter used by LLMClient.complete().
+    client = get_llm_client()
+    client._acquire_rate_limit_token()
+
+    try:
+        agent = Agent(
+            model=build_strands_model(),
+            system_prompt=system,
+            tools=[],
+        )
+        # structured_output takes the schema class and a user-facing prompt.
+        # Strands uses the system_prompt set on the Agent for the system role,
+        # so we pass only the user content here.
+        result: schema_model = agent.structured_output(schema_model, user)
+        result_dict = result.model_dump()
+    except Exception:
+        logger.exception(
+            "run_structured_agent failed for schema=%s", schema_model.__name__
+        )
+        raise
+
+    if use_cache:
+        cache.set(key, result_dict, timeout=60 * 60 * 24 * 7)
+
+    return result_dict
