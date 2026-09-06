@@ -6,6 +6,7 @@ import clsx from "clsx";
 
 import { api, setTokens } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import AuthLayout from "../components/AuthLayout.jsx";
 
 /* ── Password strength meter ─────────────────────────────────────────────── */
 function strengthOf(pw) {
@@ -145,24 +146,11 @@ export default function Signup() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-paper px-4 py-10 text-ink font-body">
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
-        className="w-full max-w-md"
-      >
-        {/* Card */}
-        <div className="border border-line rounded-xl bg-white shadow-sm overflow-hidden">
-          {/* Header stripe */}
-          <div className="bg-ledger px-8 py-6">
-            <div className="font-display text-2xl text-paper leading-none">SupplyChainIQ</div>
-            <p className="mt-1 text-sm text-wheat/80">
-              Create your procurement workspace
-            </p>
-          </div>
-
-          <form onSubmit={submit} noValidate className="px-8 py-7 space-y-5">
+    <AuthLayout
+      title="Create your workspace"
+      subtitle="Set up your procurement intelligence workspace in minutes"
+    >
+      <form onSubmit={submit} noValidate className="space-y-5">
 
             {/* Form-level error */}
             <AnimatePresence>
@@ -292,9 +280,7 @@ export default function Signup() {
                 Sign in
               </Link>
             </p>
-          </form>
-        </div>
-      </motion.div>
-    </main>
+      </form>
+    </AuthLayout>
   );
 }
