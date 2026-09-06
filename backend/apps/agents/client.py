@@ -161,8 +161,8 @@ def get_llm_client() -> LLMClient:
     )
 
 
-def build_strands_model():
-    """Return a Strands OpenAIModel pointed at Groq's OpenAI-compatible endpoint.
+def build_strands_model(model_id: str | None = None):
+    """Return a Strands OpenAIModel pointed at the configured OpenAI-compatible endpoint.
 
     Strands defaults to Amazon Bedrock; this factory overrides that by
     supplying an ``OpenAIModel`` configured with the same ``LLM_API_KEY``,
@@ -170,12 +170,17 @@ def build_strands_model():
     rest of the application.  This lets us use Groq (or any other
     OpenAI-compatible provider) without needing AWS Bedrock credentials.
 
-    Usage (once agents are migrated)::
+    Args:
+        model_id: Override the model to use.  Defaults to
+            ``settings.LLM_MODEL_FAST`` when not provided.
+
+    Usage::
 
         from strands import Agent
         from apps.agents.client import build_strands_model
 
         agent = Agent(model=build_strands_model(), tools=[...])
+        judge_agent = Agent(model=build_strands_model(model_id=settings.LLM_MODEL_JUDGE))
     """
     from strands.models.openai import OpenAIModel
 
@@ -184,11 +189,12 @@ def build_strands_model():
             "api_key": settings.LLM_API_KEY,
             "base_url": settings.LLM_BASE_URL,
         },
-        model_id=settings.LLM_MODEL_FAST,
+        model_id=model_id or settings.LLM_MODEL_FAST,
     )
 
 
-def run_structured_agent(system: str, user: str, schema_model, use_cache: bool = True) -> dict:
+def run_structured_agent(system: str, user: str, schema_model, use_cache: bool = True,
+                         model_id: str | None = None) -> dict:
     """Single-turn structured completion via the Strands Agents SDK.
 
     Mirrors the caching and rate-limiting behaviour of ``LLMClient.complete()``
@@ -204,6 +210,9 @@ def run_structured_agent(system: str, user: str, schema_model, use_cache: bool =
             against.
         use_cache: When ``True`` (default) the result is read from / written
             to the Django cache using the same 7-day TTL as ``complete()``.
+        model_id: Override the model used by Strands.  Defaults to
+            ``settings.LLM_MODEL_FAST`` when not provided.  Pass
+            ``settings.LLM_MODEL_JUDGE`` for higher-stakes reasoning calls.
 
     Returns:
         A plain ``dict`` produced by ``schema_model(**...).model_dump()``.
@@ -215,11 +224,10 @@ def run_structured_agent(system: str, user: str, schema_model, use_cache: bool =
     """
     from strands import Agent
 
-    # Build a cache key that incorporates the schema name so different
-    # structured-output shapes never collide with each other or with plain
-    # text completions.
+    # Build a cache key that incorporates the schema name and model so
+    # different structured-output shapes or models never collide in the cache.
     raw_key = json.dumps(
-        {"schema": schema_model.__name__, "system": system, "user": user},
+        {"schema": schema_model.__name__, "model": model_id, "system": system, "user": user},
         sort_keys=True,
     )
     key = f"llmcache:{hashlib.sha256(raw_key.encode()).hexdigest()}"
@@ -236,7 +244,7 @@ def run_structured_agent(system: str, user: str, schema_model, use_cache: bool =
 
     try:
         agent = Agent(
-            model=build_strands_model(),
+            model=build_strands_model(model_id=model_id),
             system_prompt=system,
             tools=[],
         )

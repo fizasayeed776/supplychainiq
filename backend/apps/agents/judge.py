@@ -3,10 +3,24 @@ Judge agent. Quality lives here: reviews Comparator candidates, filters
 false positives (rounding, unit conversions e.g. boxes vs pieces, partial
 deliveries), and assigns severity. Prompt iteration against the seeded
 test corpus (precision/recall) is expected to happen mainly on this prompt.
-"""
-from decimal import Decimal
 
-from .client import get_llm_client
+Design note: the LLM returns only kept_indices (0-based positions into the
+candidates list) rather than re-emitting the full discrepancy objects.  This
+sidesteps OpenAI's strict JSON schema requirement (discrepancy objects have
+heterogeneous shapes that can't be described with a fixed schema) and prevents
+the LLM from accidentally reformatting or corrupting the original data.
+Python maps the indices back to the untouched candidate dicts.
+"""
+import logging
+from decimal import Decimal
+from typing import List, Literal
+
+from django.conf import settings
+from pydantic import BaseModel
+
+from .client import run_structured_agent
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are the Judge agent for procurement three-way matching.
 You receive candidate discrepancies from a Comparator and must:
@@ -19,9 +33,19 @@ You receive candidate discrepancies from a Comparator and must:
 3. Write concise plain-language reasoning a procurement officer can act on.
 
 Respond ONLY with JSON: {"status": "matched|discrepant|unmatched",
-"severity": "none|minor|major|critical", "discrepancies": [...], "reasoning": "..."}
-Keep discrepancies discarded as false positives OUT of the returned list.
+"severity": "none|minor|major|critical",
+"kept_indices": [list of integer positions, 0-indexed, of the candidates
+from the input list that represent genuine discrepancies], "reasoning": "..."}
+Do not re-describe or restate the candidates — only reference them by index.
+Indices of candidates you consider false positives must be excluded from kept_indices.
 """
+
+
+class JudgeDecision(BaseModel):
+    status: Literal["matched", "discrepant", "unmatched"]
+    severity: Literal["none", "minor", "major", "critical"]
+    kept_indices: List[int]
+    reasoning: str
 
 
 def judge(invoice, candidates: list[dict]) -> dict:
@@ -41,17 +65,27 @@ def judge(invoice, candidates: list[dict]) -> dict:
     if not candidates:
         return {"status": "matched", "severity": "none", "discrepancies": [], "reasoning": "No discrepancies found."}
 
-    client = get_llm_client()
+    candidates_display = "\n".join(f"[{i}] {c}" for i, c in enumerate(candidates))
     user_prompt = (
         f"Invoice {invoice.invoice_number} for vendor {invoice.vendor.name}.\n"
-        f"Candidate discrepancies:\n{candidates}"
+        f"Candidate discrepancies (reference by index in your response):\n{candidates_display}"
     )
-    response = client.complete(
-        SYSTEM_PROMPT, user_prompt, model=client.judge_model,
-        json_schema={"status": "str", "severity": "str", "discrepancies": "list", "reasoning": "str"},
-    )
-    result = response["json"] or {
-        "status": "discrepant", "severity": "minor",
-        "discrepancies": candidates, "reasoning": "Judge response unavailable; defaulting to raw candidates.",
-    }
+
+    try:
+        decision = run_structured_agent(SYSTEM_PROMPT, user_prompt, JudgeDecision,
+                                        model_id=settings.LLM_MODEL_JUDGE)
+        kept = [candidates[i] for i in decision["kept_indices"] if 0 <= i < len(candidates)]
+        result = {
+            "status": decision["status"],
+            "severity": decision["severity"],
+            "discrepancies": kept,
+            "reasoning": decision["reasoning"],
+        }
+    except Exception:
+        logger.exception("judge failed for invoice %s", invoice.invoice_number)
+        result = {
+            "status": "discrepant", "severity": "minor",
+            "discrepancies": candidates,
+            "reasoning": "Judge response unavailable; defaulting to raw candidates.",
+        }
     return result
