@@ -10,7 +10,10 @@ def process_partner_payload(self, payload):
     from apps.core.models import Workspace, Vendor
     from apps.documents.models import Document
     from apps.documents.tasks import ingest_document, content_hash_of
-    import json, hashlib, tempfile, os
+    import json
+    import hashlib
+    import tempfile
+    import os
 
     try:
         workspace = Workspace.objects.get(slug=payload["workspace_slug"])

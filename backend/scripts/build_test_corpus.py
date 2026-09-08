@@ -81,7 +81,7 @@ def _po(workspace, vendor, index, po_number, description, quantity, unit_price, 
 def _invoice(workspace, vendor, index, po_number, description, quantity, unit_price, currency="USD",
              extra_line=None):
     doc = _doc(workspace, vendor, "invoice", index, "inv")
-    invoice = Invoice.objects.create(
+    invoice_obj = Invoice.objects.create(
         document=doc, workspace=workspace, vendor=vendor,
         invoice_number=f"EVAL-INV-{index+1:02d}",
         referenced_po_number=po_number,
@@ -95,12 +95,12 @@ def _invoice(workspace, vendor, index, po_number, description, quantity, unit_pr
     )
     if extra_line:
         LineItem.objects.create(document=doc, **extra_line)
-    return doc, invoice
+    return doc, invoice_obj
 
 
 def _receipt(workspace, vendor, index, po_number, quantity, is_partial=False, suffix="rec"):
     doc = _doc(workspace, vendor, "delivery_receipt", index, suffix)
-    receipt = DeliveryReceipt.objects.create(
+    receipt_obj = DeliveryReceipt.objects.create(
         document=doc, workspace=workspace, vendor=vendor,
         referenced_po_number=po_number,
         delivery_date=date(2026, 9, 4),
@@ -110,7 +110,7 @@ def _receipt(workspace, vendor, index, po_number, quantity, is_partial=False, su
         document=doc, sku="EVAL-ITEM", description="Evaluation item",
         quantity=quantity, unit_price=Decimal("1.20"), currency="USD", position=0,
     )
-    return doc, receipt
+    return doc, receipt_obj
 
 
 def _contract(workspace, vendor, unit_price, expired=False):
