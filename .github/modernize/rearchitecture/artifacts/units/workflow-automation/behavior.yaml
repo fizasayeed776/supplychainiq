@@ -1,9 +1,0 @@
-unit: workflow-automation
-side_effects:
-  - {source_loc: "backend/apps/workflow/tasks.py:16", effect: "create approval flow/step, auto-approve or move discrepant invoice to dispute", must_preserve: true}
-  - {source_loc: "backend/apps/workflow/tasks.py:63", effect: "send critical discrepancy and expiry/compliance notifications", must_preserve: true}
-branches:
-  - {source_loc: "backend/apps/workflow/tasks.py:16", condition: "active triage rule matches", behavior: "auto-approve; otherwise require review/dispute", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/apps/workflow/tasks.py:106", trigger: "Frankfurter unavailable", outcome: "FX task failure/cache remains", contract: "task failure state", must_preserve: true}
-concurrency: {model: thread-pool, tx_boundary: {source_loc: "backend/apps/workflow/tasks.py:16", scope: "approval state and step creation", isolation: "default", must_preserve: true}}

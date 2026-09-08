@@ -1,4 +1,0 @@
-unit: frontend-spa
-commit: false
-candidate_splits:
-  - {id: "frontend/src/App.jsx:56", drivers: [concern_split, change_cadence_split], rationale: "Seven page workflows have distinct data and interaction contracts while sharing routing, API transport and visual components.", source_slice: {file: frontend/src/App.jsx, lines: [56, 90]}}

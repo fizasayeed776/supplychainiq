@@ -18,3 +18,20 @@ ignore = [
     "W291",  # trailing whitespace
     "W293",  # whitespace before ':'
 ]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "*/tests*",
+    "manage.py",
+    "config/*",
+    "scripts/*",
+]
+
+[tool.coverage.report]
+# Fail the build if coverage drops below 60%.
+# Raise this threshold incrementally as coverage improves.
+fail_under = 60
+show_missing = true
+skip_covered = false

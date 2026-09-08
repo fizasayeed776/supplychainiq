@@ -7,8 +7,10 @@ from rest_framework.response import Response
 
 from .models import ApprovalFlow, ApprovalStep, Dispute, TriageRule
 from apps.core.models import WorkspaceMembership
+from apps.core.permissions import IsAtLeastViewer, IsAtLeastReviewer, IsAtLeastAdmin
 from .serializers import (
-    ApprovalFlowSerializer, ApprovalDecisionSerializer, DisputeSerializer, TriageRuleSerializer,
+    ApprovalFlowSerializer, ApprovalDecisionSerializer, DisputeSerializer,
+    TriageRuleSerializer, PendingStepSerializer,
 )
 
 
@@ -20,8 +22,52 @@ class WorkspaceScopedMixin:
 class ApprovalFlowViewSet(WorkspaceScopedMixin, viewsets.ReadOnlyModelViewSet):
     queryset = ApprovalFlow.objects.select_related("invoice", "invoice__vendor").prefetch_related("steps").all()
     serializer_class = ApprovalFlowSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # Viewers can read; approve/dispute/mark_paid actions enforce higher roles
+    # via has_object_permission on IsAtLeastReviewer / IsAtLeastAdmin.
+    permission_classes = [permissions.IsAuthenticated, IsAtLeastViewer]
     filterset_fields = ["workspace", "state"]
+
+    def get_permissions(self):
+        """Escalate permission requirement for mutating actions."""
+        if self.action == "decide":
+            return [permissions.IsAuthenticated(), IsAtLeastReviewer()]
+        if self.action == "mark_paid":
+            return [permissions.IsAuthenticated(), IsAtLeastAdmin()]
+        return super().get_permissions()
+
+    @action(detail=False, methods=["get"], url_path="pending-steps")
+    def pending_steps(self, request):
+        """Return a flat list of pending ApprovalSteps that have an
+        escalation_deadline set, scoped to the authenticated user's workspaces.
+
+        Optional query params:
+          - workspace: filter to a single workspace ID
+          - overdue: 'true' returns only steps past their deadline
+
+        Used by the Dashboard SLA countdown panel.
+        """
+        qs = (
+            ApprovalStep.objects
+            .filter(
+                decision="pending",
+                escalation_deadline__isnull=False,
+                flow__workspace__members=request.user,
+            )
+            .select_related("flow", "flow__invoice", "flow__invoice__vendor", "approver")
+            .order_by("escalation_deadline")
+        )
+
+        workspace_id = request.query_params.get("workspace")
+        if workspace_id:
+            qs = qs.filter(flow__workspace_id=workspace_id)
+
+        overdue = request.query_params.get("overdue", "").lower()
+        if overdue == "true":
+            from django.utils import timezone as tz
+            qs = qs.filter(escalation_deadline__lt=tz.now())
+
+        serializer = PendingStepSerializer(qs, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def decide(self, request, pk=None):
@@ -109,5 +155,5 @@ class DisputeViewSet(viewsets.ModelViewSet):
 class TriageRuleViewSet(WorkspaceScopedMixin, viewsets.ModelViewSet):
     queryset = TriageRule.objects.all()
     serializer_class = TriageRuleSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAtLeastAdmin]
     filterset_fields = ["workspace", "active"]

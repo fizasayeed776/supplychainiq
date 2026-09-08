@@ -1,4 +1,0 @@
-unit: realtime
-commit: false
-candidate_splits:
-  - {id: "backend/apps/realtime/consumers.py:5", drivers: [protocol_split, concern_split], rationale: "Dashboard progress, chat streaming and approval presence use different event vocabularies and authorization contexts.", source_slice: {file: backend/apps/realtime/consumers.py, lines: [5, 150]}}

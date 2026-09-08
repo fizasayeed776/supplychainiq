@@ -1,4 +1,0 @@
-unit: workflow-automation
-commit: false
-candidate_splits:
-  - {id: "backend/apps/workflow/tasks.py:16-159", drivers: [lifecycle_split, execution_model_split], rationale: "Approval lifecycle automation, outbound notifications, external FX synchronization and weekly reporting have distinct schedules and external dependencies.", source_slice: {file: backend/apps/workflow/tasks.py, lines: [16, 159]}}

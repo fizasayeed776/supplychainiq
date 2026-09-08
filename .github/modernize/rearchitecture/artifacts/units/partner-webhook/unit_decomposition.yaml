@@ -1,4 +1,0 @@
-unit: partner-webhook
-commit: false
-candidate_splits:
-  - {id: "backend/apps/webhooks/views.py:24", drivers: [protocol_split, execution_model_split], rationale: "Synchronous signature/dedup admission and asynchronous partner payload materialization have separate latency and retry contracts.", source_slice: {file: backend/apps/webhooks/views.py, lines: [24, 70]}}

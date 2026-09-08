@@ -1,9 +1,0 @@
-unit: document-pipeline
-side_effects:
-  - {source_loc: "backend/apps/documents/tasks.py:31", effect: "OCR, extract, materialize structured records, store chunks and enqueue matching", must_preserve: true}
-  - {source_loc: "backend/apps/documents/tasks.py:13", effect: "publish workspace pipeline progress over Channels", must_preserve: true}
-branches:
-  - {source_loc: "backend/apps/documents/tasks.py:63", condition: "native PDF text available", behavior: "skip OCR; otherwise run OCR and vision fallback for low confidence", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/apps/documents/tasks.py:74", trigger: "OCR failure or low confidence", outcome: "mark OCR state and use fallback/failure path", contract: "persisted OCR status", must_preserve: true}
-concurrency: {model: thread-pool, tx_boundary: {source_loc: "backend/apps/documents/tasks.py:100", scope: "task-level document materialization and downstream dispatch", isolation: "default", must_preserve: true}}

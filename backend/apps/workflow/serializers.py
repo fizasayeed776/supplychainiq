@@ -7,7 +7,38 @@ class ApprovalStepSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApprovalStep
-        fields = ["id", "order", "approver", "approver_name", "decision", "decided_at", "escalation_deadline"]
+        fields = [
+            "id", "order", "approver", "approver_name",
+            "decision", "decided_at", "escalation_deadline",
+            "decision_actor",
+        ]
+
+
+class PendingStepSerializer(serializers.ModelSerializer):
+    """Flat representation used by the Dashboard SLA countdown panel.
+
+    Returns every pending ApprovalStep (decision='pending') that has an
+    escalation_deadline set, along with enough invoice/vendor context for
+    the UI to render a labelled countdown without a second request.
+    """
+
+    approver_name = serializers.CharField(source="approver.username", read_only=True, default=None)
+    flow_id = serializers.IntegerField(source="flow.id", read_only=True)
+    flow_state = serializers.CharField(source="flow.state", read_only=True)
+    invoice_id = serializers.UUIDField(source="flow.invoice.id", read_only=True)
+    invoice_number = serializers.CharField(source="flow.invoice.invoice_number", read_only=True)
+    vendor_name = serializers.CharField(source="flow.invoice.vendor.name", read_only=True)
+    workspace = serializers.IntegerField(source="flow.workspace_id", read_only=True)
+
+    class Meta:
+        model = ApprovalStep
+        fields = [
+            "id", "order", "decision", "decided_at", "escalation_deadline",
+            "approver", "approver_name",
+            "flow_id", "flow_state",
+            "invoice_id", "invoice_number", "vendor_name",
+            "workspace",
+        ]
 
 
 class ApprovalFlowSerializer(serializers.ModelSerializer):

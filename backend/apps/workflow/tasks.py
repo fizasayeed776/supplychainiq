@@ -2,7 +2,9 @@ import logging
 from datetime import timedelta
 
 import requests
+from asgiref.sync import async_to_sync
 from celery import shared_task
+from channels.layers import get_channel_layer
 from django.utils import timezone
 
 from apps.documents.models import Invoice
@@ -11,6 +13,20 @@ from apps.core.models import Workspace, Contract
 from .models import ApprovalFlow, ApprovalStep, Dispute, TriageRule, WebhookDelivery
 
 logger = logging.getLogger(__name__)
+
+
+def _publish_sla(workspace_id, payload: dict) -> None:
+    """Push an sla_deadline_update message to the workspace's dashboard group.
+
+    Called whenever an ApprovalStep's escalation_deadline is first set (on
+    creation) or changes (on escalation), so the Dashboard SLA panel can
+    refresh without polling more frequently than necessary.
+    """
+    layer = get_channel_layer()
+    async_to_sync(layer.group_send)(
+        f"dashboard_{workspace_id}",
+        {"type": "sla.deadline.update", "payload": payload},
+    )
 
 
 @shared_task
@@ -26,10 +42,21 @@ def advance_approval_flow(invoice_id):
     if flow.state == "draft":
         flow.submit_for_review()
         flow.save()
-        ApprovalStep.objects.get_or_create(
+        step, _ = ApprovalStep.objects.get_or_create(
             flow=flow, order=1,
             defaults={"escalation_deadline": timezone.now() + timedelta(days=2)},
         )
+        if step.escalation_deadline:
+            _publish_sla(invoice.workspace_id, {
+                "step_id": step.id,
+                "flow_id": flow.id,
+                "invoice_id": str(invoice.id),
+                "invoice_number": invoice.invoice_number,
+                "vendor": invoice.vendor.name,
+                "escalation_deadline": step.escalation_deadline.isoformat(),
+                "decision": step.decision,
+                "event": "step_created",
+            })
 
     for rule in TriageRule.objects.filter(workspace=invoice.workspace, active=True):
         if rule.matches(invoice, match_result) and flow.state == "pending_review":
@@ -97,6 +124,25 @@ def escalate_overdue_steps():
             flow=step.flow, order=step.order + 1,
             defaults={"approver": next_approver, "escalation_deadline": timezone.now() + timedelta(days=1)},
         )
+        # Notify the dashboard that SLA deadlines have changed: the old step
+        # is now escalated (no further countdown) and a fresh step was created.
+        workspace_id = step.flow.workspace_id
+        _publish_sla(workspace_id, {
+            "step_id": step.id,
+            "flow_id": step.flow_id,
+            "invoice_id": str(step.flow.invoice_id),
+            "decision": step.decision,
+            "event": "step_escalated",
+        })
+        if created and next_step.escalation_deadline:
+            _publish_sla(workspace_id, {
+                "step_id": next_step.id,
+                "flow_id": next_step.flow_id,
+                "invoice_id": str(next_step.flow.invoice_id),
+                "escalation_deadline": next_step.escalation_deadline.isoformat(),
+                "decision": next_step.decision,
+                "event": "step_created",
+            })
         from .outbound import post_signed_webhook
         urls = (step.flow.workspace.settings_json or {}).get("outbound_webhook_urls", [])
         for url in urls:
@@ -147,10 +193,13 @@ def check_contract_expiry():
 @shared_task
 def send_weekly_compliance_report():
     """Beat: weekly; renders an HTML report and emails it (Mailpit in dev)
-    + posts a summary to Microsoft Teams."""
+    + posts a summary to Microsoft Teams.  An Excel workbook attachment
+    (compliance_report.xlsx) is generated via openpyxl and attached to the
+    email so recipients can open it in Excel without logging into the app."""
     from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
     from django.conf import settings as dj_settings
+    from .report_export import build_compliance_workbook
 
     for workspace in Workspace.objects.all():
         stats = _compliance_stats(workspace)
@@ -162,20 +211,38 @@ def send_weekly_compliance_report():
             to=[m.email for m in workspace.members.all() if m.email],
         )
         email.attach_alternative(html, "text/html")
+
+        # Attach the Excel workbook if openpyxl is available.
+        wb_bytes = build_compliance_workbook(workspace, stats)
+        if wb_bytes:
+            email.attach(
+                f"compliance_report_{workspace.slug}.xlsx",
+                wb_bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
         email.send(fail_silently=True)
 
         from .outbound import post_signed_webhook
         urls = (workspace.settings_json or {}).get("outbound_webhook_urls", [])
         for url in urls:
-            post_signed_webhook(workspace, url, {"event": "weekly_compliance_report", "stats": stats})
+            post_signed_webhook(workspace, url, {
+                "event": "weekly_compliance_report",
+                "stats": stats,
+                "note": "Excel attachment sent by email; see compliance_report.xlsx.",
+            })
 
 
 def _compliance_stats(workspace) -> dict:
     invoices = Invoice.objects.filter(workspace=workspace)
     matches = MatchResult.objects.filter(workspace=workspace)
+    from .models import Dispute
     return {
         "total_invoices": invoices.count(),
         "discrepant": matches.filter(status="discrepant").count(),
         "critical": matches.filter(severity="critical").count(),
         "expired_contracts": Contract.objects.filter(workspace=workspace, status="expired").count(),
+        "open_disputes": Dispute.objects.filter(
+            match_result__workspace=workspace, status__in=["draft", "sent"]
+        ).count(),
     }

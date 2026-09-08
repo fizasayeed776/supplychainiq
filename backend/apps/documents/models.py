@@ -46,6 +46,7 @@ class Document(TimeStampedModel):
     vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True, related_name="documents")
 
     class Meta:
+        ordering = ["-created_at"]
         indexes = [models.Index(fields=["workspace", "content_hash"])]
         constraints = [
             models.UniqueConstraint(fields=["workspace", "content_hash"], name="uniq_doc_per_workspace_hash")

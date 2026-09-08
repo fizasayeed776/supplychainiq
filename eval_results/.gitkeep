@@ -1,0 +1,4 @@
+# This directory holds JSON output files from backend/scripts/evaluate_matching.py.
+# The *.json files are gitignored (see root .gitignore) to avoid bloating the repo.
+# Commit a specific result file manually when you want a versioned baseline:
+#   git add -f eval_results/matching_eval_<timestamp>.json

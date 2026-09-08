@@ -1,6 +1,0 @@
-unit: frontend-spa
-bindings:
-  - {type: route-declaration, name: "BrowserRouter routes", source_loc: "frontend/src/App.jsx:56", target: "SPA pages", must_appear_in_target: true, notes: "Routes dashboard, documents, matches, approvals, vendors, chat and settings."}
-  - {type: convention, name: "React Query provider and Vite entry", source_loc: "frontend/src/main.jsx:1", target: "frontend bootstrap", must_appear_in_target: true, notes: "Provider composition and BrowserRouter."}
-runtime_config:
-  - {key: Vite API/WebSocket proxy, source_loc: "frontend/vite.config.js:5", source: code, default_value: "configured proxy", must_appear_in_target: true, notes: "Development transport routing."}

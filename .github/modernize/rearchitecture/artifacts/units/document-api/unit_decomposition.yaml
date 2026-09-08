@@ -1,4 +1,0 @@
-unit: document-api
-commit: false
-candidate_splits:
-  - {id: "backend/apps/documents/views.py:16", drivers: [concern_split], rationale: "Upload/lifecycle operations and read-only structured record queries have different side effects and change cadence.", source_slice: {file: backend/apps/documents/views.py, lines: [16, 100]}}

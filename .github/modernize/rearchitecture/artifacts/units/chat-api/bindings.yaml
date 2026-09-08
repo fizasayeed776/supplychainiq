@@ -1,5 +1,0 @@
-unit: chat-api
-bindings:
-  - {type: route-declaration, name: "ChatSessionViewSet and ask action", source_loc: "backend/apps/chat/urls.py:4", target: "chat session REST routes", must_appear_in_target: true, notes: "Uses RAG service."}
-runtime_config:
-  - {key: LLM_BASE_URL, source_loc: "backend/apps/agents/client.py:12", source: env, default_value: "provider default", must_appear_in_target: true, notes: "OpenAI-compatible chat and embeddings."}

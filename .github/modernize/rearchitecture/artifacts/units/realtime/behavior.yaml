@@ -1,8 +1,0 @@
-unit: realtime
-side_effects:
-  - {source_loc: "backend/apps/realtime/consumers.py:5", effect: "join workspace/session/invoice groups and broadcast progress, answers and presence", must_preserve: true}
-branches:
-  - {source_loc: "backend/apps/realtime/consumers.py:5", condition: "JWT and workspace/session membership valid", behavior: "accept socket; otherwise reject/close", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/apps/realtime/middleware.py:19", trigger: "missing or invalid JWT", outcome: "unauthenticated WebSocket", contract: "socket rejection/close", must_preserve: true}
-concurrency: {model: event-loop, tx_boundary: {source_loc: "backend/apps/realtime/consumers.py:5", scope: "message handling and group broadcasts", isolation: "not specified", must_preserve: true}}

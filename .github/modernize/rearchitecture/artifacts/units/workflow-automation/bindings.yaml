@@ -1,5 +1,0 @@
-unit: workflow-automation
-bindings:
-  - {type: listener, name: "Celery Beat schedule and task autodiscovery", source_loc: "backend/config/celery.py:11", target: "scheduled workflow tasks", must_appear_in_target: true, notes: "15-minute escalation plus daily/weekly jobs."}
-runtime_config:
-  - {key: CELERY_BEAT_SCHEDULE, source_loc: "backend/config/celery.py:11", source: code, default_value: "declared schedule", must_appear_in_target: true, notes: "FX, rematch, risk, expiry, compliance and escalation timing."}

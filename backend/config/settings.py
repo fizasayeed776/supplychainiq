@@ -120,6 +120,20 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost"
 ).split(",")
 
+# ---- Reverse-proxy / ngrok ----
+# CSRF_TRUSTED_ORIGINS allows Django's CSRF middleware to accept requests
+# that arrive from an ngrok (or other proxy) HTTPS origin.  Set the env var
+# to a comma-separated list of origins, e.g.:
+#   CSRF_TRUSTED_ORIGINS=https://abc123.ngrok-free.app
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]
+
+# Tell Django to trust the X-Forwarded-Proto header set by nginx so that
+# HTTPS-terminating proxies (ngrok, load balancers) are handled correctly.
+# Without this, Django sees plain HTTP and rejects secure-cookie / HTTPS checks.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # ---- DRF / JWT ----
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

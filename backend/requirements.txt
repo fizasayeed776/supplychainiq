@@ -25,3 +25,4 @@ flower==2.0.1
 django-redis==5.4.0
 whitenoise==6.7.0
 strands-agents[openai]==1.54.0
+openpyxl==3.1.5

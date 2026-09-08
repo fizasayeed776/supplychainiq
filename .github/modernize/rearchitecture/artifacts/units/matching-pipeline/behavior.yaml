@@ -1,9 +1,0 @@
-unit: matching-pipeline
-side_effects:
-  - {source_loc: "backend/apps/matching/tasks.py:18", effect: "run Matcher -> Comparator -> Judge and persist MatchResult", must_preserve: true}
-  - {source_loc: "backend/apps/matching/tasks.py:18", effect: "publish progress and dispatch approval/dispute workflow", must_preserve: true}
-branches:
-  - {source_loc: "backend/apps/matching/tasks.py:18", condition: "invoice has related PO and delivery receipt", behavior: "perform three-way comparison; otherwise produce unmatched/discrepant result", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/apps/matching/tasks.py:18", trigger: "agent or related-record failure", outcome: "task failure or persisted pending state", contract: "MatchResult status", must_preserve: true}
-concurrency: {model: thread-pool, tx_boundary: {source_loc: "backend/apps/matching/tasks.py:18", scope: "MatchResult persistence and workflow dispatch", isolation: "default", must_preserve: true}}

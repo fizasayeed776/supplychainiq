@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import clsx from "clsx";
-import { Building2 } from "lucide-react";
+import { Building2, TrendingUp, TrendingDown, Minus, ReceiptText } from "lucide-react";
 
 import { api } from "../lib/api.js";
 import PageHeader from "../components/PageHeader.jsx";
@@ -47,6 +47,88 @@ function RiskMeter({ score = 0, compact }) {
         {Math.round(score)}
       </span>
       <div className={`text-[10px] mt-0.5 ${tier.color}`}>{tier.label} risk</div>
+    </div>
+  );
+}
+
+/* ── Spend summary helpers ──────────────────────────────────────────────── */
+function fmtAmount(total, currency) {
+  const num = parseFloat(total);
+  if (isNaN(num)) return "—";
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: currency || "USD",
+    maximumFractionDigits: 0,
+  }).format(num);
+}
+
+function TrendBadge({ trend }) {
+  if (!trend) return null;
+  const change = trend.change_pct;
+  if (change === null || change === undefined) return null;
+
+  const up   = change > 0;
+  const flat = Math.abs(change) < 1;
+  const Icon = flat ? Minus : up ? TrendingUp : TrendingDown;
+  const cls  = flat
+    ? "text-ink/40"
+    : up
+    ? "text-critical"       // spend going up = more exposure
+    : "text-matched";       // spend going down = lower exposure
+
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[11px] font-mono ${cls}`}>
+      <Icon size={11} aria-hidden="true" />
+      {flat ? "flat" : `${change > 0 ? "+" : ""}${change}%`}
+      <span className="text-ink/30 ml-0.5 font-sans">vs last quarter</span>
+    </span>
+  );
+}
+
+function SpendSummary({ summary }) {
+  if (!summary) return null;
+  const { per_currency, invoice_count, trend } = summary;
+
+  if (!invoice_count) {
+    return (
+      <div className="text-xs text-ink/40 py-1">
+        No invoices processed yet — spend will appear here once invoices arrive.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Per-currency totals */}
+      <div className="flex flex-wrap gap-2">
+        {(per_currency || []).map(({ currency, total, invoice_count: cnt }) => (
+          <div
+            key={currency}
+            className="flex-1 min-w-[120px] px-3 py-2 rounded-md border border-line bg-paper/60"
+          >
+            <div className="text-[10px] font-mono uppercase tracking-wider text-ink/40 mb-0.5">
+              {currency}
+            </div>
+            <div className="font-display text-lg text-ink leading-none">
+              {fmtAmount(total, currency)}
+            </div>
+            <div className="text-[11px] text-ink/40 mt-0.5">
+              {cnt} invoice{cnt !== 1 ? "s" : ""}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Trend line */}
+      {trend && (
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-ink/50">
+            This quarter: <span className="font-mono text-ink">{fmtAmount(trend.this_quarter, trend.currency)}</span>
+          </span>
+          <span className="text-ink/20">·</span>
+          <TrendBadge trend={trend} />
+        </div>
+      )}
     </div>
   );
 }
@@ -128,7 +210,17 @@ export default function Vendors() {
               >
                 <div className="min-w-0 mr-4">
                   <div className="text-sm font-medium text-ink truncate">{v.name}</div>
-                  <div className="text-xs text-ink/40 mt-0.5">{v.payment_terms_days}-day payment terms</div>
+                  <div className="text-xs text-ink/40 mt-0.5">
+                    {v.payment_terms_days}-day terms
+                    {v.spend_summary?.per_currency?.length > 0 && (
+                      <span className="ml-1.5 text-ink/60">
+                        · {fmtAmount(
+                            v.spend_summary.per_currency[0].total,
+                            v.spend_summary.per_currency[0].currency
+                          )}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <RiskMeter score={v.risk_score} compact />
               </button>
@@ -185,6 +277,15 @@ export default function Vendors() {
                 <div className="text-sm text-ink/70 leading-relaxed mb-6 p-4 bg-paper/60 rounded-md border border-line">
                   {active.risk_explanation ||
                     "Risk score has not been computed yet — it recomputes nightly as invoices arrive."}
+                </div>
+
+                {/* Spend summary */}
+                <div className="text-[11px] font-mono uppercase tracking-wider text-ink/40 mb-3 flex items-center gap-1.5">
+                  <ReceiptText size={11} className="text-ink/30" aria-hidden="true" />
+                  Spend summary
+                </div>
+                <div className="mb-6">
+                  <SpendSummary summary={active.spend_summary} />
                 </div>
 
                 {/* Contracts */}

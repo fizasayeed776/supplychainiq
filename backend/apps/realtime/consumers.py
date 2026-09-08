@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -32,6 +33,12 @@ class DashboardConsumer(AsyncJsonWebsocketConsumer):
     async def pipeline_progress(self, event):
         await self.send_json({"type": "pipeline_progress", "payload": event["payload"]})
 
+    async def sla_deadline_update(self, event):
+        """Pushed whenever an ApprovalStep's escalation_deadline is set or
+        changes (new step created, step escalated).  The payload contains
+        enough info for the Dashboard to refresh its SLA countdown panel."""
+        await self.send_json({"type": "sla_deadline_update", "payload": event["payload"]})
+
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     """Streams RAG responses token by token to the Chat page."""
@@ -50,28 +57,65 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self._stream_answer(question)
 
     @database_sync_to_async
-    def _persist_and_get_stream(self, question):
+    def _persist_user_message(self, question):
         from apps.chat.models import ChatSession, ChatMessage
-        from apps.chat.rag import answer_question
 
         session = ChatSession.objects.get(id=self.session_id)
         ChatMessage.objects.create(session=session, role="user", content=question)
-        result = answer_question(question, session.workspace_id)
+        return session
+
+    @database_sync_to_async
+    def _persist_assistant_message(self, session, answer, citations):
+        from apps.chat.models import ChatMessage
+
         ChatMessage.objects.create(
-            session=session, role="assistant", content=result["answer"], citations=result["citations"]
+            session=session, role="assistant", content=answer, citations=citations
         )
-        return result
 
     async def _stream_answer(self, question):
-        result = await self._persist_and_get_stream(question)
-        # Token-chunked emission so the UI can render a typing effect even
-        # though the underlying LLM call above is non-streaming in this stub.
-        words = result["answer"].split(" ")
-        buffer = []
-        for word in words:
-            buffer.append(word)
-            await self.send_json({"type": "token", "content": word + " "})
-        await self.send_json({"type": "done", "citations": result["citations"]})
+        """True streaming: a sync producer thread runs stream_answer_question
+        and pushes each event onto an asyncio.Queue as it arrives; this async
+        method drains the queue and forwards events to the WebSocket immediately
+        — no buffering of the full response before sending begins."""
+        session = await self._persist_user_message(question)
+
+        loop = asyncio.get_event_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def producer():
+            from apps.chat.rag import stream_answer_question
+            from django.db import close_old_connections
+
+            try:
+                for event in stream_answer_question(question, session.workspace_id):
+                    asyncio.run_coroutine_threadsafe(queue.put(event), loop).result()
+            except Exception as exc:
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"type": "error", "detail": str(exc)}), loop
+                ).result()
+            finally:
+                # Release Django DB connections borrowed by the thread so they
+                # are not leaked back into the thread pool.
+                close_old_connections()
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop).result()
+
+        # Run the sync generator concurrently in the default thread-pool executor.
+        # We do NOT await this — the queue draining loop below runs while it produces.
+        loop.run_in_executor(None, producer)
+
+        full_tokens: list[str] = []
+        citations: list = []
+        while True:
+            event = await queue.get()
+            if event is None:
+                break
+            await self.send_json(event)
+            if event["type"] == "token":
+                full_tokens.append(event["content"])
+            elif event["type"] == "done":
+                citations = event.get("citations", [])
+
+        await self._persist_assistant_message(session, "".join(full_tokens), citations)
 
 
 class ApprovalRoomConsumer(AsyncJsonWebsocketConsumer):

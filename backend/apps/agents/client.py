@@ -55,21 +55,47 @@ class LLMClient:
         raw = json.dumps({"model": model, "system": system, "user": user, "tools": tools_schema}, sort_keys=True)
         return f"llmcache:{hashlib.sha256(raw.encode()).hexdigest()}"
 
+    def stream_complete(self, system: str, user: str, model: str = None):
+        """Streaming single-turn completion. Yields text chunks as they arrive
+        from the provider. No caching (streaming responses are not cacheable).
+        Rate-limiting still applies."""
+        model = model or self.fast_model
+        self._acquire_rate_limit_token()
+        yield from self._stream_openai_compatible(system, user, model)
+
+    def _stream_openai_compatible(self, system, user, model):
+        from openai import OpenAI
+
+        client = OpenAI(api_key=self.chat_api_key, base_url=self.base_url or None, timeout=60.0)
+        with client.chat.completions.create(
+            model=model,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+            stream=True,
+        ) as stream:
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content if chunk.choices else None
+                if delta:
+                    yield delta
+
     def complete(self, system: str, user: str, model: str = None, json_schema: dict = None,
                   use_cache: bool = True) -> dict:
         """Single-turn structured/unstructured completion.
         Returns {"text": str, "json": dict|None, "cached": bool}."""
+        from apps.agents.usage import record_complete
+
         model = model or self.fast_model
         key = self._cache_key(model, system, user, json_schema)
         if use_cache:
             hit = cache.get(key)
             if hit is not None:
+                record_complete(model, f"{system} {user}", cached=True)
                 return {**hit, "cached": True}
 
         self._acquire_rate_limit_token()
         result = self._call_provider(system, user, model, json_schema)
         if use_cache:
             cache.set(key, result, timeout=60 * 60 * 24 * 7)
+        record_complete(model, f"{system} {user}", cached=False)
         return {**result, "cached": False}
 
     def _call_provider(self, system, user, model, json_schema):
@@ -101,7 +127,9 @@ class LLMClient:
         return {"text": text, "json": parsed}
 
     def embed(self, text: str) -> list:
+        import hashlib as _hashlib
         from openai import OpenAI
+        from apps.agents.usage import record_embed
 
         if self.embedding_provider != "gemini":
             raise NotImplementedError(
@@ -109,6 +137,14 @@ class LLMClient:
             )
         if not self.embedding_api_key:
             raise RuntimeError("EMBEDDING_API_KEY is required for Gemini embedding calls")
+
+        # Content-addressed embedding cache (shared with embed_chunks task).
+        emb_cache_key = f"emb:{_hashlib.sha256(text.encode()).hexdigest()}"
+        cached_vector = cache.get(emb_cache_key)
+        if cached_vector is not None:
+            record_embed(self.embedding_model, text, cached=True)
+            return cached_vector
+
         client = OpenAI(
             api_key=self.embedding_api_key,
             base_url=self.embedding_base_url,
@@ -123,6 +159,10 @@ class LLMClient:
                 self.embedding_dim,
             )
             vector = (vector[:self.embedding_dim] + [0.0] * self.embedding_dim)[:self.embedding_dim]
+
+        # Cache forever — embeddings are content-addressed and deterministic.
+        cache.set(emb_cache_key, vector, timeout=None)
+        record_embed(self.embedding_model, text, cached=False)
         return vector
 
     def transcribe_image_document(self, file_path: str) -> str:

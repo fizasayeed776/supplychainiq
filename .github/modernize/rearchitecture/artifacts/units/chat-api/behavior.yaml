@@ -1,8 +1,0 @@
-unit: chat-api
-side_effects:
-  - {source_loc: "backend/apps/chat/views.py:18", effect: "persist user question and assistant answer with citations", must_preserve: true}
-branches:
-  - {source_loc: "backend/apps/chat/rag.py:16", condition: "retrieval and optional aggregate invoice query", behavior: "combine vector/full-text context and enforce citations", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/apps/chat/views.py:18", trigger: "unknown session or answer failure", outcome: "request error without fabricated answer", contract: "DRF status/error response", must_preserve: true}
-concurrency: {model: sync, tx_boundary: {source_loc: "backend/apps/chat/views.py:18", scope: "message persistence around RAG call", isolation: "default", must_preserve: true}}

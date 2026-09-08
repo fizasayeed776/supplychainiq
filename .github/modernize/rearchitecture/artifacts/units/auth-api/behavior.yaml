@@ -1,7 +1,0 @@
-unit: auth-api
-side_effects: []
-branches:
-  - {source_loc: "backend/config/urls.py:9", condition: "valid or invalid credentials", behavior: "issue JWT pair or return authentication error", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/config/urls.py:9", trigger: "invalid credentials", outcome: "JWT authentication failure response", contract: "SimpleJWT error response", must_preserve: true}
-concurrency: {model: sync, tx_boundary: {source_loc: "backend/config/urls.py:9", scope: "token validation", isolation: "default", must_preserve: true}}

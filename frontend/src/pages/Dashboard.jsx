@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, ReferenceDot,
@@ -7,7 +7,7 @@ import {
 import { motion } from "framer-motion";
 import {
   Radio, CheckCircle2, Loader2, Clock, Zap,
-  TrendingDown, AlertTriangle, ClipboardCheck, ShieldAlert, BarChart2,
+  TrendingDown, AlertTriangle, ClipboardCheck, ShieldAlert, BarChart2, Timer,
 } from "lucide-react";
 
 import { api } from "../lib/api.js";
@@ -74,8 +74,88 @@ function RiskHeatRow({ vendor }) {
   );
 }
 
+/* ── SLA countdown helpers ───────────────────────────────────────────────── */
+
+/**
+ * Returns a live-updated human-readable string for the time remaining until
+ * `deadlineIso`, refreshing every `intervalMs` milliseconds.
+ * Returns null while the deadline is not yet known.
+ */
+function useCountdownTick(deadlineIso, intervalMs = 30_000) {
+  const [label, setLabel] = useState(() => formatCountdown(deadlineIso));
+  useEffect(() => {
+    setLabel(formatCountdown(deadlineIso));
+    const id = setInterval(() => setLabel(formatCountdown(deadlineIso)), intervalMs);
+    return () => clearInterval(id);
+  }, [deadlineIso, intervalMs]);
+  return label;
+}
+
+function formatCountdown(deadlineIso) {
+  if (!deadlineIso) return null;
+  const diffMs = new Date(deadlineIso) - Date.now();
+  if (diffMs <= 0) return "OVERDUE";
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const remHours = hours % 24;
+    return remHours > 0 ? `${days}d ${remHours}h left` : `${days}d left`;
+  }
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  return `${minutes}m left`;
+}
+
+function SlaCountdownRow({ step }) {
+  const countdown = useCountdownTick(step.escalation_deadline);
+  const isOverdue = countdown === "OVERDUE";
+  const isWarning = !isOverdue && (() => {
+    const diffMs = new Date(step.escalation_deadline) - Date.now();
+    return diffMs > 0 && diffMs < 4 * 60 * 60 * 1000; // < 4 h
+  })();
+
+  return (
+    <div
+      className="flex items-center gap-3 py-2"
+      aria-label={`SLA countdown for invoice ${step.invoice_number}: ${countdown}`}
+    >
+      {/* Vendor / invoice */}
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-medium text-ink truncate leading-none mb-0.5">
+          {step.vendor_name}
+        </div>
+        <div className="text-[11px] text-ink/40 font-mono truncate">
+          {step.invoice_number}
+        </div>
+      </div>
+
+      {/* Step order badge */}
+      <div className="shrink-0 text-[10px] font-mono text-ink/30">
+        step {step.order}
+      </div>
+
+      {/* Countdown chip */}
+      <div
+        className={[
+          "shrink-0 px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold tabular-nums",
+          isOverdue
+            ? "bg-critical/10 text-critical"
+            : isWarning
+            ? "bg-major/10 text-major"
+            : "bg-line text-ink/60",
+        ].join(" ")}
+        aria-live="polite"
+      >
+        {countdown ?? "—"}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { workspaceId } = useAuth();
+  const queryClient = useQueryClient();
   const [feed, setFeed] = useState([]);
 
   const { connected } = useWebSocket(
@@ -85,6 +165,10 @@ export default function Dashboard() {
         setFeed((prev) =>
           [{ id: crypto.randomUUID(), ...msg.payload, at: new Date() }, ...prev].slice(0, 30)
         );
+      }
+      if (msg.type === "sla_deadline_update") {
+        // A step was created or escalated — refetch the SLA panel immediately.
+        queryClient.invalidateQueries({ queryKey: ["sla-steps", workspaceId] });
       }
     }
   );
@@ -138,6 +222,19 @@ export default function Dashboard() {
       return entries.map(([week, discrepancies]) => ({ week, discrepancies }));
     },
     enabled: !!workspaceId,
+  });
+
+  /* ── SLA countdown data (refetches every 30 s + on WS push) ─────────── */
+  const { data: slaSteps, isLoading: slaLoading } = useQuery({
+    queryKey: ["sla-steps", workspaceId],
+    queryFn: async () =>
+      (
+        await api.get("/workflow/approvals/pending-steps/", {
+          params: { workspace: workspaceId },
+        })
+      ).data ?? [],
+    enabled: !!workspaceId,
+    refetchInterval: 30_000,
   });
 
   const vendorsAtRisk = vendors?.filter((v) => v.risk_score > 60).length ?? 0;
@@ -342,6 +439,57 @@ export default function Dashboard() {
               <span className="text-matched">● Low</span>
               <span className="text-major">● Medium</span>
               <span className="text-critical">● High</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── SLA countdowns ─────────────────────────────────────────────── */}
+        <div className="col-span-12 border border-line rounded-lg bg-white p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-[11px] font-mono uppercase tracking-wider text-ink/40 mb-0.5">
+                SLA
+              </div>
+              <div className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                <Timer size={14} className="text-ink/40" aria-hidden="true" />
+                SLA Countdowns
+              </div>
+            </div>
+            {(slaSteps ?? []).some(
+              (s) => s.escalation_deadline && new Date(s.escalation_deadline) < Date.now()
+            ) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-critical/10 text-critical text-[11px] font-semibold">
+                <AlertTriangle size={10} aria-hidden="true" />
+                Overdue items
+              </span>
+            )}
+          </div>
+
+          {slaLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <Skeleton className="h-3 w-32 mb-1" />
+                    <Skeleton className="h-2.5 w-20" />
+                  </div>
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              ))}
+            </div>
+          ) : !(slaSteps ?? []).length ? (
+            <div className="flex items-center gap-2 py-3 text-xs text-ink/40">
+              <CheckCircle2 size={14} className="text-matched shrink-0" aria-hidden="true" />
+              No pending SLA deadlines — all approval steps are clear.
+            </div>
+          ) : (
+            <div className="divide-y divide-line/60">
+              {(slaSteps ?? [])
+                .slice()
+                .sort((a, b) => new Date(a.escalation_deadline) - new Date(b.escalation_deadline))
+                .map((step) => (
+                  <SlaCountdownRow key={step.id} step={step} />
+                ))}
             </div>
           )}
         </div>

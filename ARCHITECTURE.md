@@ -170,6 +170,22 @@ Workspace ──< TriageRule
 Workspace ──< ChatSession ──< ChatMessage
 ```
 
+## Agent prompt iteration history
+
+Every agent's system prompt has gone through multiple documented iterations
+driven by evaluation results and production observations. The full log —
+including problem observed, root cause, exact change made, and before/after
+precision/recall — is in:
+
+**[docs/PROMPT_ITERATION_LOG.md](docs/PROMPT_ITERATION_LOG.md)**
+
+Entries cover all six agents: Extractor, Matcher, Comparator, Judge, Risk
+Analyst, and Dispute Drafter. Each entry cross-references the
+`eval_results/` JSON file produced by
+`python backend/scripts/evaluate_matching.py` where applicable.
+
+---
+
 ## Key design decisions
 
 **No ORM calls inside Celery beat tasks** — Beat only enqueues; all DB work

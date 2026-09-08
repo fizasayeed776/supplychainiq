@@ -25,7 +25,7 @@ const STATUS_META = {
 /* ── Document type icons (mirrors Documents.jsx) ─────────────────────────── */
 const TYPE_ICONS = {
   invoice:          { icon: Receipt,       label: "Invoice",          cls: "text-signal"       },
-  purchase_order:   { icon: Package,       label: "Purchase order",   cls: "text-ledgerLight"  },
+  po:               { icon: Package,       label: "Purchase order",   cls: "text-ledgerLight"  },
   contract:         { icon: FileSignature, label: "Contract",         cls: "text-major"        },
   delivery_receipt: { icon: Package,       label: "Delivery receipt", cls: "text-matched"      },
 };

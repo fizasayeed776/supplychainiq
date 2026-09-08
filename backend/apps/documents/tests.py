@@ -157,3 +157,64 @@ class DocumentIngestionTests(TestCase):
         self.assertEqual(document.extraction["invoice_number"], "INV-CORRECT")
         # Other fields must be preserved
         self.assertEqual(document.extraction["vendor_name"], "Acme Supplies")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OCR vision-fallback gate tests
+# ══════════════════════════════════════════════════════════════════════════════
+
+class OCRVisionFallbackGateTests(TestCase):
+    """Verify that vision_fallback_ocr (GPT vision) is only called when
+    Tesseract's confidence is BELOW the configured threshold, never when
+    confidence is high.  The gate lives in apps/documents/tasks.ocr_document.
+    """
+
+    def setUp(self):
+        workspace = Workspace.objects.create(name="OCR Gate WS", slug="ocr-gate-ws")
+        vendor = Vendor.objects.create(workspace=workspace, name="OCR Vendor")
+        self.doc = Document.objects.create(
+            workspace=workspace,
+            vendor=vendor,
+            type="invoice",
+            source="upload",
+            file=SimpleUploadedFile("scan.pdf", b"%PDF-fake"),
+            content_hash="ocr-gate-test".ljust(64, "0"),
+        )
+
+    @patch("apps.documents.ocr.vision_fallback_ocr")
+    @patch("apps.documents.ocr.ocr_pdf")
+    def test_vision_fallback_skipped_when_confidence_is_high(self, mock_ocr_pdf, mock_vision):
+        """When Tesseract returns confidence >= threshold, vision_fallback_ocr
+        must NOT be called at all."""
+        # Confidence 0.95 is well above the 0.65 default threshold.
+        mock_ocr_pdf.return_value = {"text": "Invoice text", "confidence": 0.95}
+
+        from apps.documents.tasks import ocr_document
+        # apply() runs the task synchronously in-process with a fake request
+        # context so self.request.retries is available (bind=True task).
+        ocr_document.apply(args=[self.doc.id])
+
+        mock_ocr_pdf.assert_called_once()
+        mock_vision.assert_not_called()
+
+        self.doc.refresh_from_db()
+        self.assertEqual(self.doc.ocr_status, "done")
+        self.assertEqual(self.doc.raw_text, "Invoice text")
+
+    @patch("apps.documents.ocr.vision_fallback_ocr")
+    @patch("apps.documents.ocr.ocr_pdf")
+    def test_vision_fallback_called_when_confidence_is_low(self, mock_ocr_pdf, mock_vision):
+        """When Tesseract returns confidence < threshold, vision_fallback_ocr
+        IS called and its result is used."""
+        mock_ocr_pdf.return_value = {"text": "garbled text", "confidence": 0.30}
+        mock_vision.return_value = {"text": "Clean vision text", "confidence": 0.98}
+
+        from apps.documents.tasks import ocr_document
+        ocr_document.apply(args=[self.doc.id])
+
+        mock_ocr_pdf.assert_called_once()
+        mock_vision.assert_called_once()
+
+        self.doc.refresh_from_db()
+        self.assertEqual(self.doc.ocr_status, "low_confidence")
+        self.assertEqual(self.doc.raw_text, "Clean vision text")

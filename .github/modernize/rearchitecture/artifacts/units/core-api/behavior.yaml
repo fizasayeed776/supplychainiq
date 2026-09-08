@@ -1,8 +1,0 @@
-unit: core-api
-side_effects:
-  - {source_loc: "backend/apps/core/views.py:12", effect: "CRUD workspace, vendor and contract records scoped to authenticated memberships", must_preserve: true}
-branches:
-  - {source_loc: "backend/apps/core/views.py:12", condition: "user is a workspace member", behavior: "include workspace-scoped records; otherwise exclude", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/apps/core/views.py:12", trigger: "invalid serializer data", outcome: "DRF validation response", contract: "HTTP 400 JSON", must_preserve: true}
-concurrency: {model: sync, tx_boundary: {source_loc: "backend/apps/core/views.py:12", scope: "individual DRF request mutation", isolation: "default", must_preserve: true}}

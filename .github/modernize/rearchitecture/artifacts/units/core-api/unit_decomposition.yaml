@@ -1,4 +1,0 @@
-unit: core-api
-commit: false
-candidate_splits:
-  - {id: "backend/apps/core/views.py:12", drivers: [data_ownership_split], rationale: "Workspace tenancy, vendor management and contract management have distinct records and filters despite sharing one API module.", source_slice: {file: backend/apps/core/views.py, lines: [12, 80]}}

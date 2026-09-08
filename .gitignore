@@ -4,3 +4,9 @@ frontend/dist/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Evaluation outputs — each run writes a timestamped JSON file; keep the
+# directory itself (with a .gitkeep) but ignore the output files so large
+# result sets don't bloat the repo.  Commit specific files manually if you
+# want a curated "latest" result visible in version control.
+eval_results/*.json

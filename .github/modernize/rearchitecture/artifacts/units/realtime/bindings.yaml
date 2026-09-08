@@ -1,6 +1,0 @@
-unit: realtime
-bindings:
-  - {type: route-declaration, name: "Channels WebSocket URLRouter", source_loc: "backend/apps/realtime/routing.py:4", target: "dashboard/chat/approval-room sockets", must_appear_in_target: true, notes: "Mounted by ASGI."}
-  - {type: middleware, name: "JWTAuthMiddlewareStack", source_loc: "backend/apps/realtime/middleware.py:19", target: "WebSocket authentication", must_appear_in_target: true, notes: "Query-string or protocol-header token."}
-runtime_config:
-  - {key: CHANNEL_LAYERS, source_loc: "backend/config/settings.py:138", source: env, default_value: "Redis channel layer", must_appear_in_target: true, notes: "Group broadcasts."}

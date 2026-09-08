@@ -1,4 +1,0 @@
-unit: document-pipeline
-commit: false
-candidate_splits:
-  - {id: "backend/apps/documents/tasks.py:31-159", drivers: [execution_model_split, concern_split], rationale: "Ingestion routing, OCR, extraction/materialization and embedding are separate asynchronous stages with distinct external dependencies and retry behavior.", source_slice: {file: backend/apps/documents/tasks.py, lines: [31, 180]}}

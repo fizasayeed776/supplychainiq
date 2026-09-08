@@ -319,3 +319,28 @@ def embed_chunks(self, document_id):
             document=doc, position=position,
             defaults={"text": chunk_str, "embedding": vector, "token_count": len(chunk_str.split())},
         )
+
+    # After all chunks are embedded, snapshot current LLM usage counters into
+    # the associated ScanRun so per-run cost/cache data is visible in the API.
+    if doc.scan_run_id:
+        _stamp_scan_run_usage(doc.scan_run_id)
+
+
+def _stamp_scan_run_usage(scan_run_id) -> None:
+    """Write a snapshot of current LLM usage counters into ScanRun.statistics.
+
+    Safe to call from any task — errors are swallowed so they never fail the
+    calling task.  The snapshot reflects cumulative monthly counters, not a
+    per-run delta, which is sufficient for the cost-visibility requirement."""
+    try:
+        from apps.agents.usage import get_snapshot
+        from django.utils import timezone
+
+        scan_run = ScanRun.objects.get(id=scan_run_id)
+        existing = scan_run.statistics or {}
+        existing["llm_usage"] = get_snapshot()
+        existing["llm_usage_updated_at"] = timezone.now().isoformat()
+        scan_run.statistics = existing
+        scan_run.save(update_fields=["statistics"])
+    except Exception:
+        logger.exception("_stamp_scan_run_usage failed for scan_run_id=%s", scan_run_id)

@@ -1,9 +1,0 @@
-unit: frontend-spa
-side_effects:
-  - {source_loc: "frontend/src/lib/api.js:3", effect: "attach JWT and refresh expired tokens for API calls", must_preserve: true}
-  - {source_loc: "frontend/src/hooks/useWebSocket.js:10", effect: "reconnect sockets and surface live backend events", must_preserve: true}
-branches:
-  - {source_loc: "frontend/src/App.jsx:56", condition: "browser path matches known route", behavior: "render corresponding page; unknown paths redirect dashboard", must_preserve: true}
-error_paths:
-  - {source_loc: "frontend/src/lib/api.js:3", trigger: "API auth failure", outcome: "refresh or leave authenticated flow", contract: "existing Axios interceptor behavior", must_preserve: true}
-concurrency: {model: event-loop, tx_boundary: {source_loc: "frontend/src/main.jsx:1", scope: "React Query/browser event handling", isolation: "not applicable", must_preserve: true}}

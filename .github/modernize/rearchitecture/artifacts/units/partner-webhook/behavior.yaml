@@ -1,9 +1,0 @@
-unit: partner-webhook
-side_effects:
-  - {source_loc: "backend/apps/webhooks/views.py:24", effect: "validate HMAC, deduplicate delivery_id and enqueue payload processing", must_preserve: true}
-  - {source_loc: "backend/apps/webhooks/tasks.py:5", effect: "materialize Document/Vendor and dispatch ingestion", must_preserve: true}
-branches:
-  - {source_loc: "backend/apps/webhooks/views.py:24", condition: "signature valid and delivery_id new", behavior: "return 202 and queue; otherwise 401/400 or dedupe response", must_preserve: true}
-error_paths:
-  - {source_loc: "backend/apps/webhooks/views.py:24", trigger: "invalid signature or missing delivery_id", outcome: "reject before queueing", contract: "401/400 HTTP response", must_preserve: true}
-concurrency: {model: sync, tx_boundary: {source_loc: "backend/apps/webhooks/tasks.py:5", scope: "payload materialization before ingestion dispatch", isolation: "default", must_preserve: true}}

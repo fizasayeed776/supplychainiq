@@ -17,7 +17,7 @@ class WorkspaceScopedMixin:
 
 
 class DocumentViewSet(WorkspaceScopedMixin, viewsets.ModelViewSet):
-    queryset = Document.objects.select_related("vendor").prefetch_related("line_items").all()
+    queryset = Document.objects.select_related("vendor").prefetch_related("line_items").order_by("-created_at")
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ["workspace", "type", "ocr_status", "vendor"]
 
