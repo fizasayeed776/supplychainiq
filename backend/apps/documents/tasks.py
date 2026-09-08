@@ -80,7 +80,7 @@ def _read_native_text(path: str, name: str):
         reader = PdfReader(path)
         text = "\n\n".join(page.extract_text() or "" for page in reader.pages).strip()
         return text or None
-    except Exception:
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -117,7 +117,7 @@ def ocr_document(self, document_id):
             doc.ocr_status = "pending"
         doc.save(update_fields=["ocr_status", "failure_reason"])
         if self.request.retries >= self.max_retries:
-            logger.error("ocr_document permanently failed for %s", document_id, exc_info=True)
+            logger.exception("ocr_document permanently failed for %s", document_id)
         raise self.retry(exc=exc)
 
 
@@ -149,7 +149,7 @@ def extract_document(self, document_id):
         doc.extraction_status = status
         doc.failure_reason = str(exc)[:2000]
         doc.save(update_fields=["extraction_status", "failure_reason"])
-        logger.error("extract_document failed for %s", document_id, exc_info=True)
+        logger.exception("extract_document failed for %s", document_id)
         raise self.retry(exc=exc)
 
 
@@ -208,23 +208,22 @@ def _materialize_structured_record(doc: Document):
                 "is_partial": fields.get("is_partial", False),
             },
         )
-    elif doc.type == "contract":
-        if vendor is not None:
-            Contract.objects.update_or_create(
-                source_document_id=doc.id,
-                defaults={
-                    "workspace": doc.workspace,
-                    "vendor": vendor,
-                    "file": doc.file.name,
-                    "terms": {
-                        "rate_cards": fields.get("rate_cards", []),
-                        "payment_days": fields.get("payment_days"),
-                        "sla": fields.get("sla", {}),
-                    },
-                    "valid_from": parse_date(fields.get("valid_from")) if fields.get("valid_from") else None,
-                    "valid_until": parse_date(fields.get("valid_until")) if fields.get("valid_until") else None,
+    elif doc.type == "contract" and vendor is not None:
+        Contract.objects.update_or_create(
+            source_document_id=doc.id,
+            defaults={
+                "workspace": doc.workspace,
+                "vendor": vendor,
+                "file": doc.file.name,
+                "terms": {
+                    "rate_cards": fields.get("rate_cards", []),
+                    "payment_days": fields.get("payment_days"),
+                    "sla": fields.get("sla", {}),
                 },
-            )
+                "valid_from": parse_date(fields.get("valid_from")) if fields.get("valid_from") else None,
+                "valid_until": parse_date(fields.get("valid_until")) if fields.get("valid_until") else None,
+            },
+        )
 
     positions = []
     for i, li in enumerate(line_items):
@@ -293,7 +292,7 @@ def poll_mailpit(self):
                 cache.set(seen_key, True, timeout=None)
                 if created:
                     ingest_document.delay(str(doc.id))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise self.retry(exc=exc)
 
 

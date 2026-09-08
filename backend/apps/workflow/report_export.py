@@ -197,7 +197,6 @@ def _sheet_contracts(wb, workspace) -> None:
     _header_row(ws, cols)
 
     today = timezone.now().date()
-    threshold = today + timedelta(days=60)
     contracts = (
         Contract.objects
         .filter(workspace=workspace, status__in=["active", "expiring", "expired"])

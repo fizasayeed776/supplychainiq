@@ -208,9 +208,9 @@ class NightlyRematchChordTests(TestCase):
             "delivery_receipt": None,
         }
 
-        with patch("apps.agents.tasks.recompute_vendor_risk.delay"):
-            with patch("apps.workflow.tasks.draft_dispute_email.delay"):
-                ret = try_three_way_match.run(str(self.inv1.id))
+        with patch("apps.agents.tasks.recompute_vendor_risk.delay"), \
+             patch("apps.workflow.tasks.draft_dispute_email.delay"):
+            ret = try_three_way_match.run(str(self.inv1.id))
 
         self.assertIn("invoice_id", ret)
         self.assertIn("status",     ret)

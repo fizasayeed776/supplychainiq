@@ -17,7 +17,7 @@ Usage in a viewset:
 For actions that need the workspace derived from the object (e.g. approve
 on an ApprovalFlow), use the mixin instead of overriding has_permission.
 """
-from rest_framework.permissions import BasePermission, IsAuthenticated  # noqa: F401
+from rest_framework.permissions import BasePermission, IsAuthenticated
 
 from .models import WorkspaceMembership
 

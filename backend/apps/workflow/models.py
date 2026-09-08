@@ -72,9 +72,7 @@ class TriageRule(TimeStampedModel):
             return False
         if self.max_amount is not None and (invoice.total_amount or 0) > self.max_amount:
             return False
-        if self.max_vendor_risk_score is not None and invoice.vendor.risk_score > self.max_vendor_risk_score:
-            return False
-        return True
+        return not (self.max_vendor_risk_score is not None and invoice.vendor.risk_score > self.max_vendor_risk_score)
 
 
 class WebhookDelivery(TimeStampedModel):

@@ -15,7 +15,7 @@ def recompute_vendor_risk(self, vendor_id):
         vendor.risk_explanation = result["explanation"]
         vendor.risk_updated_at = parse_datetime(result["computed_at"])
         vendor.save(update_fields=["risk_score", "risk_factors", "risk_explanation", "risk_updated_at"])
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise self.retry(exc=exc)
 
 

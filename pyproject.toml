@@ -9,6 +9,11 @@ select = [
     "E",   # pycodestyle errors
     "F",   # pyflakes (undefined names, etc.)
     "W",   # pycodestyle warnings
+    "G",   # flake8-logging-format
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific rules
+    "BLE", # flake8-blind-except
 ]
 ignore = [
     "E501",  # line too long — enforced separately once baseline is clean
@@ -17,6 +22,12 @@ ignore = [
     "E402",  # module level import not at top of file
     "W291",  # trailing whitespace
     "W293",  # whitespace before ':'
+    "EXE002",  # Django source files are never meant to be executed directly;
+               # the executable bit was set accidentally, not deliberately.
+    "RUF012",  # Standard Django/DRF Meta.fields, permission_classes,
+               # filterset_fields, and CHOICES class attributes are the
+               # idiomatic pattern for this framework; ClassVar annotations
+               # would be non-standard here.
 ]
 
 [tool.coverage.run]

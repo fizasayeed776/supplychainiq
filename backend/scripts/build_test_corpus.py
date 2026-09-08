@@ -149,35 +149,35 @@ class Command:
         i, v = 0, vendors[0]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("90"), Decimal("1.20"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("90"), Decimal("1.20"))
         _receipt(workspace, v, i, pn, Decimal("90"))
 
         # ── Case 02: rate mismatch ─────────────────────────────────────────
         i, v = 1, vendors[1]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.25"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.25"))
         _receipt(workspace, v, i, pn, Decimal("100"))
 
         # ── Case 03: currency mismatch (no receipt) ────────────────────────
         i, v = 2, vendors[2]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"), "USD")
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"), "EUR")
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"), "EUR")
         # No delivery receipt for this case.
 
         # ── Case 04: missing delivery (no receipt) ─────────────────────────
         i, v = 3, vendors[3]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
         # Intentionally no receipt.
 
         # ── Case 05: contract rate violation ──────────────────────────────
         i, v = 4, vendors[4]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("0.55"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("0.55"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("0.55"))
         _receipt(workspace, v, i, pn, Decimal("100"))
         _contract(workspace, v, unit_price=Decimal("0.40"), expired=False)
 
@@ -185,14 +185,14 @@ class Command:
         i, v = 5, vendors[5]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"), "USD")
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("90"), Decimal("1.25"), "EUR")
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("90"), Decimal("1.25"), "EUR")
         _receipt(workspace, v, i, pn, Decimal("90"))
 
         # ── Case 07: expired contract ──────────────────────────────────────
         i, v = 6, vendors[6]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
         _receipt(workspace, v, i, pn, Decimal("100"))
         _contract(workspace, v, unit_price=Decimal("1.20"), expired=True)
 
@@ -201,7 +201,7 @@ class Command:
         i, v = 7, vendors[7]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "5 boxes of 12 pieces", Decimal("5"), Decimal("0.40"))
-        _, inv = _invoice(workspace, v, i, pn, "55 pieces", Decimal("55"), Decimal("0.40"))
+        _, _ = _invoice(workspace, v, i, pn, "55 pieces", Decimal("55"), Decimal("0.40"))
         _receipt(workspace, v, i, pn, Decimal("55"))
 
         # ── Case 09: partial delivery shortfall ────────────────────────────
@@ -209,7 +209,7 @@ class Command:
         i, v = 8, vendors[8]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
         _receipt(workspace, v, i, pn, Decimal("70"), is_partial=True)
 
         # ── Case 10: partial delivery across two receipts ──────────────────
@@ -217,7 +217,7 @@ class Command:
         i, v = 9, vendors[9]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
         _receipt(workspace, v, i, pn, Decimal("50"), is_partial=True, suffix="rec-a")
         _receipt(workspace, v, i, pn, Decimal("40"), is_partial=True, suffix="rec-b")
 
@@ -225,19 +225,19 @@ class Command:
         i, v = 10, vendors[10]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("0"), Decimal("1.20"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("0"), Decimal("1.20"))
         _receipt(workspace, v, i, pn, Decimal("100"))
 
         # ── Case 12: multi-currency lines (USD + EUR on same invoice) ──────
         i, v = 11, vendors[11]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"), "USD")
-        extra = dict(
-            sku="EVAL-ITEM-EUR", description="Euro component",
-            quantity=Decimal("10"), unit_price=Decimal("2.00"), currency="EUR", position=1,
-        )
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"),
-                          "USD", extra_line=extra)
+        extra = {
+            "sku": "EVAL-ITEM-EUR", "description": "Euro component",
+            "quantity": Decimal("10"), "unit_price": Decimal("2.00"), "currency": "EUR", "position": 1,
+        }
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"),
+                        "USD", extra_line=extra)
         _receipt(workspace, v, i, pn, Decimal("100"))
 
         # ── Case 13: rounding false positive (CLEAN) ──────────────────────
@@ -245,7 +245,7 @@ class Command:
         i, v = 12, vendors[12]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.204"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.204"))
         _receipt(workspace, v, i, pn, Decimal("100"))
 
         # ── Case 14: unit conversion clean (CLEAN) ────────────────────────
@@ -253,14 +253,14 @@ class Command:
         i, v = 13, vendors[13]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "5 boxes of 12 pieces", Decimal("5"), Decimal("0.40"))
-        _, inv = _invoice(workspace, v, i, pn, "60 pieces", Decimal("60"), Decimal("0.40"))
+        _, _ = _invoice(workspace, v, i, pn, "60 pieces", Decimal("60"), Decimal("0.40"))
         _receipt(workspace, v, i, pn, Decimal("60"))
 
         # ── Case 15: full match clean (CLEAN) ─────────────────────────────
         i, v = 14, vendors[14]
         pn = f"EVAL-PO-{i+1:02d}"
         _po(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
-        _, inv = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
+        _, _ = _invoice(workspace, v, i, pn, "Evaluation item", Decimal("100"), Decimal("1.20"))
         _receipt(workspace, v, i, pn, Decimal("100"))
 
         # Link the contract-case PO documents to their contracts via source_document_id

@@ -204,7 +204,6 @@ def _make_user(email, password="Str0ng!Pass#99"):
 
 def _make_workspace_with_member(role):
     """Return (workspace, user, api_client) with the user having the given role."""
-    User = get_user_model()
     workspace = Workspace.objects.create(name=f"RBAC Test {role}", slug=f"rbac-{role}")
     user = _make_user(f"{role}@rbac-test.com")
     WorkspaceMembership.objects.create(workspace=workspace, user=user, role=role)
@@ -232,7 +231,7 @@ def _make_invoice_and_flow(workspace, vendor):
         invoice_number="RBAC-INV-1", referenced_po_number="RBAC-PO-1",
         invoice_date=date(2026, 9, 5), due_date=date(2026, 10, 5), currency="USD",
     )
-    match = MatchResult.objects.create(
+    MatchResult.objects.create(
         workspace=workspace, invoice=invoice,
         status="matched", severity="none", discrepancies=[],
     )

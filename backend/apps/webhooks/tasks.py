@@ -35,5 +35,5 @@ def process_partner_payload(self, payload):
         )
         if created:
             ingest_document.delay(str(doc.id))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise self.retry(exc=exc)

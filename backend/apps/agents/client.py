@@ -55,7 +55,7 @@ class LLMClient:
         raw = json.dumps({"model": model, "system": system, "user": user, "tools": tools_schema}, sort_keys=True)
         return f"llmcache:{hashlib.sha256(raw.encode()).hexdigest()}"
 
-    def stream_complete(self, system: str, user: str, model: str = None):
+    def stream_complete(self, system: str, user: str, model: str | None = None):
         """Streaming single-turn completion. Yields text chunks as they arrive
         from the provider. No caching (streaming responses are not cacheable).
         Rate-limiting still applies."""
@@ -77,7 +77,7 @@ class LLMClient:
                 if delta:
                     yield delta
 
-    def complete(self, system: str, user: str, model: str = None, json_schema: dict = None,
+    def complete(self, system: str, user: str, model: str | None = None, json_schema: dict | None = None,
                   use_cache: bool = True) -> dict:
         """Single-turn structured/unstructured completion.
         Returns {"text": str, "json": dict|None, "cached": bool}."""

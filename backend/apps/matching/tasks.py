@@ -67,7 +67,7 @@ def try_three_way_match(self, invoice_id):
             "severity": result["severity"],
         }
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise self.retry(exc=exc)
 
 

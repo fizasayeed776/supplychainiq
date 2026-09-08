@@ -89,7 +89,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             try:
                 for event in stream_answer_question(question, session.workspace_id):
                     asyncio.run_coroutine_threadsafe(queue.put(event), loop).result()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 asyncio.run_coroutine_threadsafe(
                     queue.put({"type": "error", "detail": str(exc)}), loop
                 ).result()

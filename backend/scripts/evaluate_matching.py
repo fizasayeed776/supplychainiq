@@ -71,7 +71,7 @@ PLANTED = {
     "EVAL-INV-11": True,   # zero quantity line
     "EVAL-INV-12": True,   # multi-currency lines
     "EVAL-INV-13": False,  # rounding false positive — should be suppressed
-    "EVAL-INV-14": False,  # unit conversion (60 pieces = 5 boxes × 12)
+    "EVAL-INV-14": False,  # unit conversion (60 pieces = 5 boxes x 12)
     "EVAL-INV-15": False,  # full match — everything correct
 }
 
@@ -125,13 +125,17 @@ class Command:
             actually_discrepant = result["status"] == "discrepant"
 
             if actually_discrepant and expected_discrepant:
-                tp += 1; label = "TP"
+                tp += 1
+                label = "TP"
             elif actually_discrepant and not expected_discrepant:
-                fp += 1; label = "FP"
+                fp += 1
+                label = "FP"
             elif not actually_discrepant and expected_discrepant:
-                fn += 1; label = "FN"
+                fn += 1
+                label = "FN"
             else:
-                tn += 1; label = "TN"
+                tn += 1
+                label = "TN"
 
             rows.append({
                 "invoice_number":      inv_num,
@@ -158,7 +162,7 @@ class Command:
                   f"severity={row['got_severity']:8s}  "
                   f"[{row['label']}]")
 
-        print(f"\n── Confusion matrix ───────────────────────────────────────────")
+        print("\n── Confusion matrix ───────────────────────────────────────────")
         print(f"  TP={tp}  FP={fp}  FN={fn}  TN={tn}")
         print(f"  precision={precision:.3f}  recall={recall:.3f}  F1={f1:.3f}")
         print(f"  Total evaluated: {len(rows)} invoices ({n_discrepant} discrepant, "

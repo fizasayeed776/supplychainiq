@@ -267,7 +267,7 @@ def _format_aggregate_context(aggregate: dict) -> str:
 
 
 def answer_question(question: str, workspace_id) -> dict:
-    chunks, scores = hybrid_retrieve(question, workspace_id)
+    chunks, _scores = hybrid_retrieve(question, workspace_id)
     aggregate = maybe_run_aggregate_tool(question, workspace_id)
 
     if not chunks and not aggregate:
@@ -319,7 +319,7 @@ def stream_answer_question(question: str, workspace_id):
     as a single token chunk followed by done — the consumer sees the same
     protocol either way.
     """
-    chunks, scores = hybrid_retrieve(question, workspace_id)
+    chunks, _scores = hybrid_retrieve(question, workspace_id)
     aggregate = maybe_run_aggregate_tool(question, workspace_id)
 
     not_found = {"type": "done", "citations": []}

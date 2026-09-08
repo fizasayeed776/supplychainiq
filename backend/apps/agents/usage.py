@@ -9,7 +9,7 @@ Counter keys (all live in Django's default cache / Redis DB 1):
   llmusage:<YYYY-MM>:calls_embed       — total embed() calls
   llmusage:<YYYY-MM>:hits_embed        — cache hits on embed()
   llmusage:<YYYY-MM>:tokens_approx     — approximate token sum (whitespace split)
-  llmusage:<YYYY-MM>:cost_usd_millicents — estimated cost × 100 000 (int to avoid float drift)
+  llmusage:<YYYY-MM>:cost_usd_millicents — estimated cost x 100 000 (int to avoid float drift)
 
 Using integer millicents (1/100 000 of a dollar) keeps all increments as
 atomic integer adds, which Redis handles safely without compare-and-swap.
@@ -74,7 +74,7 @@ def _increment(key: str, amount: int = 1) -> None:
     except ValueError:
         # Key doesn't exist yet — set it, then it will be incrementable.
         cache.set(key, amount, timeout=_COUNTER_TTL)
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Non-Redis backend (e.g. LocMemCache in tests) may not support incr.
         current = cache.get(key, 0)
         cache.set(key, current + amount, timeout=_COUNTER_TTL)

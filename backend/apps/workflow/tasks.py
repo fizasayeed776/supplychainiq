@@ -83,7 +83,7 @@ def draft_dispute_email(self, match_result_id):
             match_result=match_result,
             defaults={"email_subject": draft["subject"], "email_body": draft["body"], "status": "draft"},
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise self.retry(exc=exc)
 
 

@@ -262,7 +262,7 @@ class ChatConsumerStreamingTest(TestCase):
             return consumer._persist_assistant_message.call_args
 
         call_args = asyncio.run(run())
-        _session, answer, citations = call_args[0]
+        _session, _answer, citations = call_args[0]
         self.assertEqual(citations, [{"chunk_id": "c1"}, {"chunk_id": "c2"}])
 
 

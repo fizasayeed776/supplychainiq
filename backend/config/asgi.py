@@ -2,15 +2,15 @@ import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-import django  # noqa: E402
+import django
 
 django.setup()
 
-from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402
-from django.core.asgi import get_asgi_application  # noqa: E402
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.core.asgi import get_asgi_application
 
-from apps.realtime.middleware import JWTAuthMiddlewareStack  # noqa: E402
-from apps.realtime.routing import websocket_urlpatterns  # noqa: E402
+from apps.realtime.middleware import JWTAuthMiddlewareStack
+from apps.realtime.routing import websocket_urlpatterns
 
 application = ProtocolTypeRouter(
     {

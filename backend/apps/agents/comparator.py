@@ -40,13 +40,10 @@ def compare(invoice, purchase_order, delivery_receipts, contract=None) -> list[d
                 })
             continue
 
-        if delivery_receipts:
-            delivered_qty = _sum_quantities(delivery_receipts, inv_li.sku)
-        else:
-            delivered_qty = None
+        delivered_qty = _sum_quantities(delivery_receipts, inv_li.sku) if delivery_receipts else None
 
-        invoice_base, invoice_unit, invoice_multiplier = _quantity_in_base_units(inv_li)
-        po_base, po_unit, po_multiplier = _quantity_in_base_units(po_li)
+        invoice_base, _invoice_unit, invoice_multiplier = _quantity_in_base_units(inv_li)
+        po_base, _po_unit, po_multiplier = _quantity_in_base_units(po_li)
         if invoice_base != po_base:
             candidates.append({
                 "field": "quantity", "sku": key, "type": "quantity_mismatch",
