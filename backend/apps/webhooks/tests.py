@@ -9,7 +9,8 @@ import uuid
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.conf import settings
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from .dedup import is_duplicate_delivery
@@ -36,17 +37,18 @@ class WebhookDedupUnitTests(TestCase):
         self.assertFalse(is_duplicate_delivery(f"{self.run_id}-gamma"))
 
 
+@override_settings(PARTNER_WEBHOOK_SECRET="test-webhook-secret-for-ci-and-local")
 class WebhookEndpointTests(TestCase):
     """Integration tests against the partner webhook endpoint."""
-
-    SECRET = "dev-webhook-secret"
 
     def setUp(self):
         self.client = APIClient()
         self.run_id = uuid.uuid4().hex
 
     def _sign(self, body: bytes) -> str:
-        return hmac.new(self.SECRET.encode(), body, hashlib.sha256).hexdigest()
+        return hmac.new(
+            settings.PARTNER_WEBHOOK_SECRET.encode(), body, hashlib.sha256
+        ).hexdigest()
 
     def _post(self, payload, secret=None):
         body = json.dumps(payload).encode()
